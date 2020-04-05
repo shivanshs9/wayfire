@@ -55,17 +55,8 @@ class wf_blur_transformer : public wf::view_transformer_t
 
         /* We want to check if the opaque region completely occludes
          * the bounding box. If this is the case, we can skip blurring
-         * altogether and just render the surface. First we disable
-         * shrinking and get the opaque region without padding */
-        wf::surface_interface_t::set_opaque_shrink_constraint("blur", 0);
+         * altogether and just render the surface. */
         wf::region_t full_opaque = view->get_transformed_opaque_region();
-
-        /* Shrink the opaque region by the padding amount since the render
-         * chain expects this, as we have applied padding to damage in
-         * frame_pre_paint for this frame already */
-        int padding = std::ceil(provider()->calculate_blur_radius() /
-            output->render->get_target_framebuffer().scale);
-        wf::surface_interface_t::set_opaque_shrink_constraint("blur", padding);
 
         wf::region_t bbox_region{src_box};
         if ((bbox_region ^ full_opaque).empty())
@@ -98,7 +89,6 @@ class wayfire_blur : public wf::plugin_interface_t
 {
     wf::button_callback button_toggle;
 
-    wf::effect_hook_t frame_pre_paint;
     wf::signal_callback_t workspace_stream_pre, workspace_stream_post,
         view_attached, view_detached;
 
@@ -232,35 +222,6 @@ class wayfire_blur : public wf::plugin_interface_t
         output->connect_signal("map-view", &view_attached);
         output->connect_signal("detach-view", &view_detached);
 
-        /* frame_pre_paint is called before each frame has started.
-         * It expands the damage by the blur radius.
-         * This is needed, because when blurring, the pixels that changed
-         * affect a larger area than the really damaged region, e.g the region
-         * that comes from client damage */
-        frame_pre_paint = [=] ()
-        {
-            auto damage = output->render->get_scheduled_damage();
-            const auto& fb = output->render->get_target_framebuffer();
-
-            int padding = std::ceil(blur_algorithm->calculate_blur_radius() / fb.scale);
-            wf::surface_interface_t::set_opaque_shrink_constraint("blur",
-                padding);
-
-            wf::region_t padded;
-            for (const auto& rect : damage)
-            {
-                padded |= wlr_box{
-                    (rect.x1 - padding),
-                    (rect.y1 - padding),
-                    (rect.x2 - rect.x1) + 2 * padding,
-                    (rect.y2 - rect.y1) + 2 * padding
-                };
-            }
-
-            output->render->damage(padded * fb.scale);
-        };
-        output->render->add_effect(&frame_pre_paint, wf::OUTPUT_EFFECT_PRE);
-
         /* workspace_stream_pre is called before rendering each frame
          * when rendering a workspace. It gives us a chance to pad
          * damage and take a snapshot of the padded area. The padded
@@ -379,7 +340,6 @@ class wayfire_blur : public wf::plugin_interface_t
         output->disconnect_signal("attach-view", &view_attached);
         output->disconnect_signal("map-view", &view_attached);
         output->disconnect_signal("detach-view", &view_detached);
-        output->render->rem_effect(&frame_pre_paint);
         output->render->disconnect_signal("workspace-stream-pre", &workspace_stream_pre);
         output->render->disconnect_signal("workspace-stream-post", &workspace_stream_post);
 
