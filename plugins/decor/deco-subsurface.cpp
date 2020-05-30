@@ -27,16 +27,17 @@ extern "C"
 #undef static
 }
 
-class simple_decoration_surface : public wf::surface_interface_t,
-    public wf::compositor_surface_t, public wf::decorator_frame_t_t
+class simple_decoration_surface :
+    public wf::surface_interface_t,
+    public wf::compositor_surface_t,
+    public wf::decorator_frame_t_t
 {
     bool _mapped = true;
     int current_thickness;
     int current_titlebar;
 
     wayfire_view view;
-    wf::signal_callback_t title_set = [=] (wf::signal_data_t *data)
-    {
+    wf::signal_callback_t title_set = [=](wf::signal_data_t* data) {
         if (get_signaled_view(data) == view)
             view->damage(); // trigger re-render
     };
@@ -50,8 +51,8 @@ class simple_decoration_surface : public wf::surface_interface_t,
             title_texture.tex.height != target_height ||
             title_texture.current_text != view->get_title())
         {
-            auto surface = theme.render_text(view->get_title(),
-                target_width, target_height);
+            auto surface =
+                theme.render_text(view->get_title(), target_width, target_height);
             cairo_surface_upload_to_texture(surface, title_texture.tex);
             cairo_surface_destroy(surface);
             title_texture.current_text = view->get_title();
@@ -62,7 +63,8 @@ class simple_decoration_surface : public wf::surface_interface_t,
 
     bool active = true; // when views are mapped, they are usually activated
 
-    struct {
+    struct
+    {
         wf::simple_texture_t tex;
         std::string current_text = "";
     } title_texture;
@@ -73,8 +75,9 @@ class simple_decoration_surface : public wf::surface_interface_t,
 
   public:
     simple_decoration_surface(wayfire_view view) :
-        theme{},
-        layout{theme, [=] (wlr_box box) {this->damage_surface_box(box); }}
+        theme{}, layout{theme, [=](wlr_box box) {
+                            this->damage_surface_box(box);
+                        }}
     {
         this->view = view;
         view->connect_signal("title-changed", &title_set);
@@ -98,7 +101,7 @@ class simple_decoration_surface : public wf::surface_interface_t,
 
     wf::point_t get_offset() final
     {
-        return { -current_thickness, -current_titlebar };
+        return {-current_thickness, -current_titlebar};
     }
 
     virtual wf::dimensions_t get_size() const final
@@ -106,33 +109,31 @@ class simple_decoration_surface : public wf::surface_interface_t,
         return {width, height};
     }
 
-    void render_title(const wf::framebuffer_t& fb,
-        wf::geometry_t geometry)
+    void render_title(const wf::framebuffer_t& fb, wf::geometry_t geometry)
     {
         update_title(geometry.width, geometry.height, fb.scale);
         OpenGL::render_texture(title_texture.tex.tex, fb, geometry,
             glm::vec4(1.0f), OpenGL::TEXTURE_TRANSFORM_INVERT_Y);
     }
 
-    void render_scissor_box(const wf::framebuffer_t& fb, wf::point_t origin,
-        const wlr_box& scissor)
+    void render_scissor_box(
+        const wf::framebuffer_t& fb, wf::point_t origin, const wlr_box& scissor)
     {
         /* Clear background */
-        wlr_box geometry {origin.x, origin.y, width, height};
+        wlr_box geometry{origin.x, origin.y, width, height};
         theme.render_background(fb, geometry, scissor, active);
 
         /* Draw title & buttons */
         auto renderables = layout.get_renderable_areas();
-        for (auto item : renderables)
-        {
+        for (auto item : renderables) {
             if (item->get_type() == wf::decor::DECORATION_AREA_TITLE) {
                 OpenGL::render_begin(fb);
                 fb.logic_scissor(scissor);
                 render_title(fb, item->get_geometry() + origin);
                 OpenGL::render_end();
             } else { // button
-                item->as_button().render(fb,
-                    item->get_geometry() + origin, scissor);
+                item->as_button().render(
+                    fb, item->get_geometry() + origin, scissor);
             }
         }
     }
@@ -149,19 +150,25 @@ class simple_decoration_surface : public wf::surface_interface_t,
 
     bool accepts_input(int32_t sx, int32_t sy) override
     {
-        return pixman_region32_contains_point(cached_region.to_pixman(),
-            sx, sy, NULL);
+        return pixman_region32_contains_point(
+            cached_region.to_pixman(), sx, sy, NULL);
     }
 
     /* wf::compositor_surface_t implementation */
     virtual void on_pointer_enter(int x, int y) override
-    { layout.handle_motion(x, y); }
+    {
+        layout.handle_motion(x, y);
+    }
 
     virtual void on_pointer_leave() override
-    { layout.handle_focus_lost(); }
+    {
+        layout.handle_focus_lost();
+    }
 
     virtual void on_pointer_motion(int x, int y) override
-    { layout.handle_motion(x, y); }
+    {
+        layout.handle_motion(x, y);
+    }
 
     void send_move_request()
     {
@@ -188,8 +195,7 @@ class simple_decoration_surface : public wf::surface_interface_t,
 
     void handle_action(wf::decor::decoration_layout_t::action_response_t action)
     {
-        switch (action.action)
-        {
+        switch (action.action) {
             case wf::decor::DECORATION_ACTION_MOVE:
                 return send_move_request();
             case wf::decor::DECORATION_ACTION_RESIZE:
@@ -218,7 +224,9 @@ class simple_decoration_surface : public wf::surface_interface_t,
     }
 
     virtual void on_touch_motion(int x, int y) override
-    { layout.handle_motion(x, y); }
+    {
+        layout.handle_motion(x, y);
+    }
 
     virtual void on_touch_up() override
     {
@@ -269,21 +277,17 @@ class simple_decoration_surface : public wf::surface_interface_t,
         view->damage();
     };
 
-    virtual void notify_view_tiled() override
-    { }
+    virtual void notify_view_tiled() override {}
 
     void update_decoration_size()
     {
-        if (view->fullscreen)
-        {
+        if (view->fullscreen) {
             current_thickness = 0;
             current_titlebar = 0;
             this->cached_region.clear();
-        } else
-        {
+        } else {
             current_thickness = theme.get_border_size();
-            current_titlebar =
-                theme.get_title_height() + theme.get_border_size();
+            current_titlebar = theme.get_title_height() + theme.get_border_size();
             this->cached_region = layout.calculate_region();
         }
     }

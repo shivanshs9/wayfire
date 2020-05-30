@@ -16,8 +16,7 @@ namespace tile
 void for_each_view(nonstd::observer_ptr<tree_node_t> root,
     std::function<void(wayfire_view)> callback)
 {
-    if (root->as_view_node())
-    {
+    if (root->as_view_node()) {
         callback(root->as_view_node()->view);
         return;
     }
@@ -37,8 +36,7 @@ nonstd::observer_ptr<view_node_t> find_view_at(
     if (root->as_view_node())
         return root->as_view_node();
 
-    for (auto& child : root->children)
-    {
+    for (auto& child : root->children) {
         if (child->geometry & input)
             return find_view_at({child}, input);
     }
@@ -80,9 +78,7 @@ static split_insertion_t calculate_insert_type(
 
     /* Remove edges that are too far away */
     auto it = std::remove_if(edges.begin(), edges.end(),
-        [sensitivity] (auto pair) {
-            return pair.first > sensitivity;
-        });
+        [sensitivity](auto pair) { return pair.first > sensitivity; });
     edges.erase(it, edges.end());
 
     if (edges.empty())
@@ -108,12 +104,11 @@ split_insertion_t calculate_insert_type(
 /**
  * Calculate the bounds of the split preview
  */
-wf::geometry_t calculate_split_preview(nonstd::observer_ptr<tree_node_t> over,
-    split_insertion_t split_type)
+wf::geometry_t calculate_split_preview(
+    nonstd::observer_ptr<tree_node_t> over, split_insertion_t split_type)
 {
     auto preview = over->geometry;
-    switch(split_type)
-    {
+    switch (split_type) {
         case INSERT_RIGHT:
             preview.x += preview.width * (1 - SPLIT_PREVIEW_PERCENTAGE);
             // fallthrough
@@ -143,8 +138,7 @@ nonstd::observer_ptr<view_node_t> find_first_view_in_direction(
     /* Since nodes are arranged tightly into a grid, we can just find the
      * proper edge and find the view there */
     wf::point_t point;
-    switch(direction)
-    {
+    switch (direction) {
         case INSERT_ABOVE:
             point = {
                 window.x + window.width / 2,
@@ -174,19 +168,19 @@ nonstd::observer_ptr<view_node_t> find_first_view_in_direction(
     }
 
     auto root = from;
-    while (root->parent) root = root->parent;
+    while (root->parent)
+        root = root->parent;
 
     return find_view_at(root, point);
 }
 
 /* ------------------------ move_view_controller_t -------------------------- */
 move_view_controller_t::move_view_controller_t(
-    std::unique_ptr<tree_node_t>& uroot, wf::point_t grab)
-    : root(uroot)
+    std::unique_ptr<tree_node_t>& uroot, wf::point_t grab) :
+    root(uroot)
 {
     this->grabbed_view = find_view_at(root, grab);
-    if (this->grabbed_view)
-    {
+    if (this->grabbed_view) {
         this->output = this->grabbed_view->view->get_output();
         this->current_input = grab;
     }
@@ -194,15 +188,14 @@ move_view_controller_t::move_view_controller_t(
 
 move_view_controller_t::~move_view_controller_t()
 {
-    if (this->preview)
-    {
+    if (this->preview) {
         this->preview->set_target_geometry(
             get_output_local_coordinates(output, current_input), 0.0, true);
     }
 }
 
-nonstd::observer_ptr<view_node_t>
-move_view_controller_t::check_drop_destination(wf::point_t input)
+nonstd::observer_ptr<view_node_t> move_view_controller_t::check_drop_destination(
+    wf::point_t input)
 {
     auto dropped_at = find_view_at(this->root, this->current_input);
     if (!dropped_at || dropped_at == this->grabbed_view)
@@ -229,11 +222,9 @@ void move_view_controller_t::input_motion(wf::point_t input)
 
     this->current_input = input;
     auto view = check_drop_destination(input);
-    if (!view)
-    {
+    if (!view) {
         /* No view, no preview */
-        if (this->preview)
-        {
+        if (this->preview) {
             preview->set_target_geometry(
                 get_output_local_coordinates(output, input), 0.0);
         }
@@ -256,7 +247,7 @@ static int find_idx(nonstd::observer_ptr<tree_node_t> view)
 {
     auto& children = view->parent->children;
     auto it = std::find_if(children.begin(), children.end(),
-        [=] (auto& node) { return node.get() == view.get(); });
+        [=](auto& node) { return node.get() == view.get(); });
 
     return it - children.begin();
 }
@@ -272,10 +263,10 @@ void move_view_controller_t::input_released()
         return;
 
     auto split_type = (split == INSERT_LEFT || split == INSERT_RIGHT) ?
-        SPLIT_VERTICAL : SPLIT_HORIZONTAL;
+                          SPLIT_VERTICAL :
+                          SPLIT_HORIZONTAL;
 
-    if (dropped_at->parent->get_split_direction() == split_type)
-    {
+    if (dropped_at->parent->get_split_direction() == split_type) {
         /* We can simply add the dragged view as a sibling of the target view */
         auto view = grabbed_view->parent->remove_child(grabbed_view);
 
@@ -284,11 +275,10 @@ void move_view_controller_t::input_released()
             ++idx;
 
         dropped_at->parent->add_child(std::move(view), idx);
-    } else
-    {
+    } else {
         /* Case 2: we need a new split just for the dropped on and the dragged
          * views */
-        auto new_split = std::make_unique<split_node_t> (split_type);
+        auto new_split = std::make_unique<split_node_t>(split_type);
         /* The size will be autodetermined by the tree structure, but we set
          * some valid size here to avoid UB */
         new_split->set_geometry(dropped_at->geometry);
@@ -301,12 +291,10 @@ void move_view_controller_t::input_released()
         auto dropped_view = dropped_at->parent->remove_child(dropped_at);
         auto dragged_view = grabbed_view->parent->remove_child(grabbed_view);
 
-        if (split == INSERT_ABOVE || split == INSERT_LEFT)
-        {
+        if (split == INSERT_ABOVE || split == INSERT_LEFT) {
             new_split->add_child(std::move(dragged_view));
             new_split->add_child(std::move(dropped_view));
-        } else
-        {
+        } else {
             new_split->add_child(std::move(dropped_view));
             new_split->add_child(std::move(dragged_view));
         }
@@ -326,23 +314,20 @@ wf::geometry_t eval(nonstd::observer_ptr<tree_node_t> node)
 
 /* ----------------------- resize tile controller --------------------------- */
 resize_view_controller_t::resize_view_controller_t(
-    std::unique_ptr<tree_node_t>& uroot, wf::point_t grab)
-    : root(uroot)
+    std::unique_ptr<tree_node_t>& uroot, wf::point_t grab) :
+    root(uroot)
 {
     this->grabbed_view = find_view_at(root, grab);
     this->last_point = grab;
 
-    if (this->grabbed_view)
-    {
+    if (this->grabbed_view) {
         this->resizing_edges = calculate_resizing_edges(grab);
         horizontal_pair = this->find_resizing_pair(true);
-        vertical_pair   = this->find_resizing_pair(false);
+        vertical_pair = this->find_resizing_pair(false);
     }
 }
 
-resize_view_controller_t::~resize_view_controller_t()
-{
-}
+resize_view_controller_t::~resize_view_controller_t() {}
 
 uint32_t resize_view_controller_t::calculate_resizing_edges(wf::point_t grab)
 {
@@ -366,20 +351,18 @@ uint32_t resize_view_controller_t::calculate_resizing_edges(wf::point_t grab)
 }
 
 resize_view_controller_t::resizing_pair_t
-resize_view_controller_t::find_resizing_pair(bool horiz)
+    resize_view_controller_t::find_resizing_pair(bool horiz)
 {
     split_insertion_t direction;
 
     /* Calculate the direction in which we are looking for the resizing pair */
-    if (horiz)
-    {
+    if (horiz) {
         if (this->resizing_edges & WLR_EDGE_TOP) {
             direction = INSERT_ABOVE;
         } else {
             direction = INSERT_BELOW;
         }
-    } else
-    {
+    } else {
         if (this->resizing_edges & WLR_EDGE_LEFT) {
             direction = INSERT_LEFT;
         } else {
@@ -391,8 +374,7 @@ resize_view_controller_t::find_resizing_pair(bool horiz)
      * ancestor(LCA) of the grabbed view and the found view.
      *
      * Then the resizing pair is a pair of children of the LCA */
-    auto pair_view =
-        find_first_view_in_direction(this->grabbed_view, direction);
+    auto pair_view = find_first_view_in_direction(this->grabbed_view, direction);
 
     if (!pair_view) // no pair
         return {nullptr, grabbed_view};
@@ -401,8 +383,7 @@ resize_view_controller_t::find_resizing_pair(bool horiz)
     std::set<nonstd::observer_ptr<tree_node_t>> grabbed_view_ancestors;
 
     nonstd::observer_ptr<tree_node_t> ancestor = grabbed_view;
-    while (ancestor)
-    {
+    while (ancestor) {
         grabbed_view_ancestors.insert(ancestor);
         ancestor = ancestor->parent;
     }
@@ -412,8 +393,7 @@ resize_view_controller_t::find_resizing_pair(bool horiz)
     nonstd::observer_ptr<tree_node_t> lca = pair_view;
     /* The child of lca we came from the second time */
     nonstd::observer_ptr<tree_node_t> lca_successor = nullptr;
-    while (lca && !grabbed_view_ancestors.count({lca}))
-    {
+    while (lca && !grabbed_view_ancestors.count({lca})) {
         lca_successor = lca;
         lca = lca->parent;
     }
@@ -424,10 +404,8 @@ resize_view_controller_t::find_resizing_pair(bool horiz)
     assert(lca && lca->children.size());
 
     resizing_pair_t result_pair;
-    for (auto& child : lca->children)
-    {
-        if (grabbed_view_ancestors.count({child}))
-        {
+    for (auto& child : lca->children) {
+        if (grabbed_view_ancestors.count({child})) {
             result_pair.first = {child};
             break;
         }
@@ -443,8 +421,8 @@ resize_view_controller_t::find_resizing_pair(bool horiz)
     return result_pair;
 }
 
-void resize_view_controller_t::adjust_geometry(int32_t& x1, int32_t& len1,
-    int32_t& x2, int32_t& len2, int32_t delta)
+void resize_view_controller_t::adjust_geometry(
+    int32_t& x1, int32_t& len1, int32_t& x2, int32_t& len2, int32_t delta)
 {
     /*
      * On the line:
@@ -471,8 +449,7 @@ void resize_view_controller_t::input_motion(wf::point_t input)
     if (!this->grabbed_view)
         return;
 
-    if (horizontal_pair.first && horizontal_pair.second)
-    {
+    if (horizontal_pair.first && horizontal_pair.second) {
         int dy = input.y - last_point.y;
 
         auto g1 = horizontal_pair.first->geometry;
@@ -483,8 +460,7 @@ void resize_view_controller_t::input_motion(wf::point_t input)
         horizontal_pair.second->set_geometry(g2);
     }
 
-    if (vertical_pair.first && vertical_pair.second)
-    {
+    if (vertical_pair.first && vertical_pair.second) {
         int dx = input.x - last_point.x;
 
         auto g1 = vertical_pair.first->geometry;
@@ -498,5 +474,5 @@ void resize_view_controller_t::input_motion(wf::point_t input)
     this->last_point = input;
 }
 
-}
-}
+} // namespace tile
+} // namespace wf

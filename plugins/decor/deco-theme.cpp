@@ -17,8 +17,7 @@ namespace wf
 namespace decor
 {
 /** Create a new theme with the default parameters */
-decoration_theme_t::decoration_theme_t()
-{ }
+decoration_theme_t::decoration_theme_t() {}
 
 /** @return The available height for displaying the title */
 int decoration_theme_t::get_title_height() const
@@ -54,8 +53,8 @@ void decoration_theme_t::render_background(const wf::framebuffer_t& fb,
  * Render the given text on a cairo_surface_t with the given size.
  * The caller is responsible for freeing the memory afterwards.
  */
-cairo_surface_t *decoration_theme_t::render_text(std::string text,
-    int width, int height) const
+cairo_surface_t* decoration_theme_t::render_text(
+    std::string text, int width, int height) const
 {
     const auto format = CAIRO_FORMAT_ARGB32;
     auto surface = cairo_image_surface_create(format, width, height);
@@ -89,14 +88,12 @@ static struct icon_cache_t : public noncopyable_t
     }
 
     std::map<wf::decor::button_type_t, cairo_surface_t*> cached_icons;
-    cairo_surface_t *load_icon(wf::decor::button_type_t type)
+    cairo_surface_t* load_icon(wf::decor::button_type_t type)
     {
-        if (cached_icons.count(type) == 0)
-        {
+        if (cached_icons.count(type) == 0) {
             std::string resource_path =
                 INSTALL_PREFIX "/share/wayfire/decoration/resources/";
-            switch (type)
-            {
+            switch (type) {
                 case BUTTON_CLOSE:
                     resource_path += "close.png";
                     break;
@@ -118,11 +115,11 @@ static struct icon_cache_t : public noncopyable_t
     }
 } cache;
 
-cairo_surface_t *decoration_theme_t::get_button_surface(button_type_t button,
-    const button_state_t& state) const
+cairo_surface_t* decoration_theme_t::get_button_surface(
+    button_type_t button, const button_state_t& state) const
 {
-    cairo_surface_t *button_icon = cache.load_icon(button);
-    cairo_surface_t *button_surface = cairo_image_surface_create(
+    cairo_surface_t* button_icon = cache.load_icon(button);
+    cairo_surface_t* button_surface = cairo_image_surface_create(
         CAIRO_FORMAT_ARGB32, state.width, state.height);
     auto cr = cairo_create(button_surface);
 
@@ -141,7 +138,8 @@ cairo_surface_t *decoration_theme_t::get_button_surface(button_type_t button,
     cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 1.0);
     cairo_stroke_preserve(cr);
 
-    //log_info("theme render button with %d %.2f", state.pressed, state.hover_progress);
+    // log_info("theme render button with %d %.2f", state.pressed,
+    // state.hover_progress);
     /* Background */
     wf::color_t base_background = {0.5, 0.5, 0.5, 0.7};
     wf::color_t hover_add_background = {0.2, 0.2, 0.2, 0.2};
@@ -163,5 +161,5 @@ cairo_surface_t *decoration_theme_t::get_button_surface(button_type_t button,
     return button_surface;
 }
 
-}
-}
+} // namespace decor
+} // namespace wf

@@ -13,7 +13,10 @@
 #include <wayfire/matcher.hpp>
 
 void animation_base::init(wayfire_view, int, wf_animation_type) {}
-bool animation_base::step() {return false;}
+bool animation_base::step()
+{
+    return false;
+}
 animation_base::~animation_base() {}
 
 static constexpr const char* animate_custom_data_id = "animation-hook";
@@ -26,20 +29,18 @@ struct animation_hook_base : public wf::custom_data_t
     virtual ~animation_hook_base() = default;
 };
 
-template<class animation_t>
-struct animation_hook : public animation_hook_base
+template<class animation_t> struct animation_hook : public animation_hook_base
 {
     static_assert(std::is_base_of<animation_base, animation_t>::value,
-            "animation_type must be derived from animation_base!");
+        "animation_type must be derived from animation_base!");
 
     wf_animation_type type;
     wayfire_view view;
-    wf::output_t *current_output = nullptr;
+    wf::output_t* current_output = nullptr;
     std::unique_ptr<animation_base> animation;
 
     /* Update animation right before each frame */
-    wf::effect_hook_t update_animation_hook = [=] ()
-    {
+    wf::effect_hook_t update_animation_hook = [=]() {
         view->damage();
         bool result = animation->step();
         view->damage();
@@ -52,34 +53,33 @@ struct animation_hook : public animation_hook_base
      * Switch the output the view is being animated on, and update the lastly
      * animated output in the global list.
      */
-    void set_output(wf::output_t *new_output)
+    void set_output(wf::output_t* new_output)
     {
         if (current_output)
             current_output->render->rem_effect(&update_animation_hook);
 
-        if (new_output)
-        {
-            new_output->render->add_effect(&update_animation_hook,
-                wf::OUTPUT_EFFECT_PRE);
+        if (new_output) {
+            new_output->render->add_effect(
+                &update_animation_hook, wf::OUTPUT_EFFECT_PRE);
         }
 
         current_output = new_output;
     }
 
-    wf::signal_connection_t on_set_output = {[this] (wf::signal_data_t *data)
-    { set_output(view->get_output()); }};
+    wf::signal_connection_t on_set_output = {[this](wf::signal_data_t* data) {
+        set_output(view->get_output());
+    }};
 
     animation_hook(wayfire_view view, int duration, wf_animation_type type)
     {
         this->type = type;
         this->view = view;
-        if (type == ANIMATION_TYPE_UNMAP)
-        {
+        if (type == ANIMATION_TYPE_UNMAP) {
             view->take_ref();
             view->take_snapshot();
         }
 
-        animation = std::make_unique<animation_t> ();
+        animation = std::make_unique<animation_t>();
         animation->init(view, duration, type);
 
         set_output(view->get_output());
@@ -115,18 +115,16 @@ struct animation_hook : public animation_hook_base
     }
 };
 
-static void cleanup_views_on_output(wf::output_t *output)
+static void cleanup_views_on_output(wf::output_t* output)
 {
-    for (auto& view : wf::get_core().get_all_views())
-    {
+    for (auto& view : wf::get_core().get_all_views()) {
         auto wo = view->get_output();
         if (wo != output && output)
             continue;
 
-        if (view->has_data(animate_custom_data_id))
-        {
-            view->get_data<animation_hook_base>(
-                animate_custom_data_id)->stop_hook(true);
+        if (view->has_data(animate_custom_data_id)) {
+            view->get_data<animation_hook_base>(animate_custom_data_id)
+                ->stop_hook(true);
         }
     }
 }
@@ -142,7 +140,8 @@ struct animation_global_cleanup_t : public noncopyable_t
     }
 };
 
-class wayfire_animation : public wf::singleton_plugin_t<animation_global_cleanup_t, true>
+class wayfire_animation :
+    public wf::singleton_plugin_t<animation_global_cleanup_t, true>
 {
     wf::option_wrapper_t<std::string> open_animation{"animate/open_animation"};
     wf::option_wrapper_t<std::string> close_animation{"animate/close_animation"};
@@ -198,60 +197,57 @@ class wayfire_animation : public wf::singleton_plugin_t<animation_global_cleanup
     }
 
     template<class animation_t>
-        void set_animation(wayfire_view view,
-            wf_animation_type type, int duration)
+    void set_animation(wayfire_view view, wf_animation_type type, int duration)
     {
         view->store_data(
-            std::make_unique<animation_hook<animation_t>> (view, duration, type),
+            std::make_unique<animation_hook<animation_t>>(view, duration, type),
             animate_custom_data_id);
     }
 
     /* TODO: enhance - add more animations */
-    wf::signal_callback_t on_view_mapped =
-        [=] (wf::signal_data_t *ddata) -> void
-    {
+    wf::signal_callback_t on_view_mapped = [=](wf::signal_data_t* ddata) -> void {
         auto view = get_signaled_view(ddata);
         auto animation = get_animation_for_view(open_animation, view);
 
         if (animation.animation_name == "fade")
-            set_animation<fade_animation> (view, ANIMATION_TYPE_MAP, animation.duration);
+            set_animation<fade_animation>(
+                view, ANIMATION_TYPE_MAP, animation.duration);
         else if (animation.animation_name == "zoom")
-            set_animation<zoom_animation> (view, ANIMATION_TYPE_MAP, animation.duration);
+            set_animation<zoom_animation>(
+                view, ANIMATION_TYPE_MAP, animation.duration);
         else if (animation.animation_name == "fire")
-            set_animation<FireAnimation> (view, ANIMATION_TYPE_MAP, animation.duration);
+            set_animation<FireAnimation>(
+                view, ANIMATION_TYPE_MAP, animation.duration);
     };
 
-    wf::signal_callback_t on_view_unmapped = [=] (wf::signal_data_t *data)
-    {
+    wf::signal_callback_t on_view_unmapped = [=](wf::signal_data_t* data) {
         auto view = get_signaled_view(data);
         auto animation = get_animation_for_view(close_animation, view);
 
         if (animation.animation_name == "fade")
-            set_animation<fade_animation> (view, ANIMATION_TYPE_UNMAP, animation.duration);
+            set_animation<fade_animation>(
+                view, ANIMATION_TYPE_UNMAP, animation.duration);
         else if (animation.animation_name == "zoom")
-            set_animation<zoom_animation> (view, ANIMATION_TYPE_UNMAP, animation.duration);
+            set_animation<zoom_animation>(
+                view, ANIMATION_TYPE_UNMAP, animation.duration);
         else if (animation.animation_name == "fire")
-            set_animation<FireAnimation> (view, ANIMATION_TYPE_UNMAP, animation.duration);
+            set_animation<FireAnimation>(
+                view, ANIMATION_TYPE_UNMAP, animation.duration);
     };
 
-    wf::signal_callback_t on_minimize_request = [=] (wf::signal_data_t *data)
-    {
-        auto ev = static_cast<view_minimize_request_signal*> (data);
-        if (ev->state)
-        {
+    wf::signal_callback_t on_minimize_request = [=](wf::signal_data_t* data) {
+        auto ev = static_cast<view_minimize_request_signal*>(data);
+        if (ev->state) {
             ev->carried_out = true;
             set_animation<zoom_animation>(
                 ev->view, ANIMATION_TYPE_MINIMIZE, default_duration);
-        }
-        else
-        {
+        } else {
             set_animation<zoom_animation>(
                 ev->view, ANIMATION_TYPE_RESTORE, default_duration);
         }
     };
 
-    wf::signal_callback_t on_render_start = [=] (wf::signal_data_t *data)
-    {
+    wf::signal_callback_t on_render_start = [=](wf::signal_data_t* data) {
         new wf_system_fade(output, startup_duration);
     };
 

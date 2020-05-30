@@ -16,25 +16,24 @@ extern "C"
 }
 
 /* Implementation of mirror_view_t */
-wf::mirror_view_t::mirror_view_t(wayfire_view base_view)
-    : wf::view_interface_t()
+wf::mirror_view_t::mirror_view_t(wayfire_view base_view) : wf::view_interface_t()
 {
     this->base_view = base_view;
 
-    base_view_unmapped = [=] (wf::signal_data_t*) {
+    base_view_unmapped = [=](wf::signal_data_t*) {
         close();
     };
 
     base_view->connect_signal("unmap", &base_view_unmapped);
 
-    base_view_damaged = [=] (wf::signal_data_t* ) {
+    base_view_damaged = [=](wf::signal_data_t*) {
         damage();
     };
 
     base_view->connect_signal("damaged-region", &base_view_damaged);
 }
 
-wf::mirror_view_t::~mirror_view_t() { }
+wf::mirror_view_t::~mirror_view_t() {}
 
 void wf::mirror_view_t::close()
 {
@@ -67,8 +66,8 @@ wf::dimensions_t wf::mirror_view_t::get_size() const
     return {box.width, box.height};
 }
 
-void wf::mirror_view_t::simple_render(const wf::framebuffer_t& fb, int x, int y,
-    const wf::region_t& damage)
+void wf::mirror_view_t::simple_render(
+    const wf::framebuffer_t& fb, int x, int y, const wf::region_t& damage)
 {
     if (!is_mapped())
         return;
@@ -120,9 +119,18 @@ wf::geometry_t wf::mirror_view_t::get_output_geometry()
     return geometry;
 }
 
-wlr_surface *wf::mirror_view_t::get_keyboard_focus_surface() { return nullptr; }
-bool wf::mirror_view_t::is_focuseable() const { return false; }
-bool wf::mirror_view_t::should_be_decorated() { return false; }
+wlr_surface* wf::mirror_view_t::get_keyboard_focus_surface()
+{
+    return nullptr;
+}
+bool wf::mirror_view_t::is_focuseable() const
+{
+    return false;
+}
+bool wf::mirror_view_t::should_be_decorated()
+{
+    return false;
+}
 
 /* Implementation of color_rect_view_t */
 
@@ -175,46 +183,40 @@ wf::dimensions_t wf::color_rect_view_t::get_size() const
     };
 }
 
-static void render_colored_rect(const wf::framebuffer_t& fb,
-    int x, int y, int w, int h, const wf::color_t& color)
+static void render_colored_rect(const wf::framebuffer_t& fb, int x, int y, int w,
+    int h, const wf::color_t& color)
 {
     wf::color_t premultiply{
-        color.r * color.a,
-        color.g * color.a,
-        color.b * color.a,
-        color.a};
+        color.r * color.a, color.g * color.a, color.b * color.a, color.a};
 
-    OpenGL::render_rectangle({x, y, w, h}, premultiply,
-        fb.get_orthographic_projection());
+    OpenGL::render_rectangle(
+        {x, y, w, h}, premultiply, fb.get_orthographic_projection());
 }
 
-void wf::color_rect_view_t::simple_render(const wf::framebuffer_t& fb, int x, int y,
-    const wf::region_t& damage)
+void wf::color_rect_view_t::simple_render(
+    const wf::framebuffer_t& fb, int x, int y, const wf::region_t& damage)
 {
     OpenGL::render_begin(fb);
-    for (const auto& box : damage)
-    {
+    for (const auto& box : damage) {
         fb.logic_scissor(wlr_box_from_pixman_box(box));
 
         /* Draw the border, making sure border parts don't overlap, otherwise
          * we will get wrong corners if border has alpha != 1.0 */
         // top
-        render_colored_rect(fb, x, y, geometry.width, border,
-            _border_color);
+        render_colored_rect(fb, x, y, geometry.width, border, _border_color);
         // bottom
-        render_colored_rect(fb, x, y + geometry.height - border,
-            geometry.width, border, _border_color);
+        render_colored_rect(fb, x, y + geometry.height - border, geometry.width,
+            border, _border_color);
         // left
         render_colored_rect(fb, x, y + border, border,
             geometry.height - 2 * border, _border_color);
         // right
-        render_colored_rect(fb, x + geometry.width - border,
-            y + border, border, geometry.height - 2 * border, _border_color);
+        render_colored_rect(fb, x + geometry.width - border, y + border, border,
+            geometry.height - 2 * border, _border_color);
 
         /* Draw the inside of the rect */
         render_colored_rect(fb, x + border, y + border,
-            geometry.width - 2 * border, geometry.height - 2 * border,
-            _color);
+            geometry.width - 2 * border, geometry.height - 2 * border, _color);
     }
 
     OpenGL::render_end();
@@ -251,6 +253,15 @@ wf::geometry_t wf::color_rect_view_t::get_output_geometry()
     return geometry;
 }
 
-wlr_surface *wf::color_rect_view_t::get_keyboard_focus_surface() { return nullptr; }
-bool wf::color_rect_view_t::is_focuseable() const { return false; }
-bool wf::color_rect_view_t::should_be_decorated() { return false; }
+wlr_surface* wf::color_rect_view_t::get_keyboard_focus_surface()
+{
+    return nullptr;
+}
+bool wf::color_rect_view_t::is_focuseable() const
+{
+    return false;
+}
+bool wf::color_rect_view_t::should_be_decorated()
+{
+    return false;
+}

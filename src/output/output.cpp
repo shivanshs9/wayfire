@@ -22,14 +22,15 @@ extern "C"
 
 wf::output_t::output_t() = default;
 
-wf::output_impl_t::output_impl_t(wlr_output *handle, const wf::dimensions_t& effective_size)
+wf::output_impl_t::output_impl_t(
+    wlr_output* handle, const wf::dimensions_t& effective_size)
 {
     this->set_effective_size(effective_size);
     this->handle = handle;
-    workspace = std::make_unique<workspace_manager> (this);
-    render = std::make_unique<render_manager> (this);
+    workspace = std::make_unique<workspace_manager>(this);
+    render = std::make_unique<render_manager>(this);
 
-    view_disappeared_cb = [=] (wf::signal_data_t *data) {
+    view_disappeared_cb = [=](wf::signal_data_t* data) {
         output_t::refocus(get_signaled_view(data));
     };
 
@@ -39,7 +40,7 @@ wf::output_impl_t::output_impl_t(wlr_output *handle, const wf::dimensions_t& eff
 
 void wf::output_impl_t::start_plugins()
 {
-    plugin = std::make_unique<plugin_manager> (this);
+    plugin = std::make_unique<plugin_manager>(this);
 }
 
 std::string wf::output_t::to_string() const
@@ -50,13 +51,11 @@ std::string wf::output_t::to_string() const
 void wf::output_impl_t::refocus(wayfire_view skip_view, uint32_t layers)
 {
     wayfire_view next_focus = nullptr;
-    auto views = workspace->get_views_on_workspace(workspace->get_current_workspace(), layers, true);
+    auto views = workspace->get_views_on_workspace(
+        workspace->get_current_workspace(), layers, true);
 
-    for (auto v : views)
-    {
-        if (v != skip_view && v->is_mapped() &&
-            v->get_keyboard_focus_surface())
-        {
+    for (auto v : views) {
+        if (v != skip_view && v->is_mapped() && v->get_keyboard_focus_surface()) {
             next_focus = v;
             break;
         }
@@ -68,15 +67,16 @@ void wf::output_impl_t::refocus(wayfire_view skip_view, uint32_t layers)
 void wf::output_t::refocus(wayfire_view skip_view)
 {
     uint32_t focused_layer = wf::get_core().get_focused_layer();
-    uint32_t layers = focused_layer <= LAYER_WORKSPACE ?  WM_LAYERS : focused_layer;
+    uint32_t layers =
+        focused_layer <= LAYER_WORKSPACE ? WM_LAYERS : focused_layer;
 
     auto views = workspace->get_views_on_workspace(
         workspace->get_current_workspace(), layers, true);
 
-    if (views.empty())
-    {
+    if (views.empty()) {
         if (wf::get_core().get_active_output() == this) {
-            LOGD("warning: no focused views in the focused layer, probably a bug");
+            LOGD(
+                "warning: no focused views in the focused layer, probably a bug");
         }
 
         /* Usually, we focus a layer so that a particular view has focus, i.e
@@ -94,7 +94,7 @@ wf::output_t::~output_t()
 {
     wf::get_core_impl().input->free_output_bindings(this);
 }
-wf::output_impl_t::~output_impl_t() { }
+wf::output_impl_t::~output_impl_t() {}
 
 void wf::output_impl_t::set_effective_size(const wf::dimensions_t& size)
 {
@@ -109,9 +109,7 @@ wf::dimensions_t wf::output_impl_t::get_screen_size() const
 wf::geometry_t wf::output_t::get_relative_geometry() const
 {
     auto size = get_screen_size();
-    return {
-        0, 0, size.width, size.height
-    };
+    return {0, 0, size.width, size.height};
 }
 
 wf::geometry_t wf::output_t::get_layout_geometry() const
@@ -129,8 +127,7 @@ wf::geometry_t wf::output_t::get_layout_geometry() const
 void wf::output_t::ensure_pointer(bool center) const
 {
     auto ptr = wf::get_core().get_cursor_position();
-    if (!center &&
-        (get_layout_geometry() & wf::point_t{(int)ptr.x, (int)ptr.y}))
+    if (!center && (get_layout_geometry() & wf::point_t{(int)ptr.x, (int)ptr.y}))
     {
         return;
     }
@@ -178,7 +175,7 @@ bool wf::output_t::ensure_visible(wayfire_view v)
 template<class popup_type>
 void try_close_popup(wayfire_view to_check, wayfire_view active_view)
 {
-    auto popup = dynamic_cast<wayfire_xdg_popup<popup_type>*> (to_check.get());
+    auto popup = dynamic_cast<wayfire_xdg_popup<popup_type>*>(to_check.get());
     if (!popup || popup->popup_parent == active_view.get())
         return;
 
@@ -186,7 +183,7 @@ void try_close_popup(wayfire_view to_check, wayfire_view active_view)
      * close the topmost popup and this will recursively destroy the others.
      *
      * Otherwise we get a race condition with wlroots. */
-    if (dynamic_cast<wayfire_xdg_popup<popup_type>*> (popup->popup_parent))
+    if (dynamic_cast<wayfire_xdg_popup<popup_type>*>(popup->popup_parent))
         return;
 
     popup->close();
@@ -194,10 +191,9 @@ void try_close_popup(wayfire_view to_check, wayfire_view active_view)
 
 void wf::output_impl_t::close_popups()
 {
-    for (auto& v : workspace->get_views_in_layer(wf::ALL_LAYERS))
-    {
-        try_close_popup<wlr_xdg_popup> (v, active_view);
-        try_close_popup<wlr_xdg_popup_v6> (v, active_view);
+    for (auto& v : workspace->get_views_in_layer(wf::ALL_LAYERS)) {
+        try_close_popup<wlr_xdg_popup>(v, active_view);
+        try_close_popup<wlr_xdg_popup_v6>(v, active_view);
     }
 }
 
@@ -213,8 +209,7 @@ void wf::output_impl_t::update_active_view(wayfire_view v, uint32_t flags)
 
 void wf::output_impl_t::focus_view(wayfire_view v, uint32_t flags)
 {
-    const auto& make_view_visible = [this, flags] (wayfire_view view)
-    {
+    const auto& make_view_visible = [this, flags](wayfire_view view) {
         if (view->minimized)
             view->minimize_request(false);
 
@@ -222,11 +217,9 @@ void wf::output_impl_t::focus_view(wayfire_view v, uint32_t flags)
             workspace->bring_to_front(view);
     };
 
-    if (v && workspace->get_view_layer(v) < wf::get_core().get_focused_layer())
-    {
+    if (v && workspace->get_view_layer(v) < wf::get_core().get_focused_layer()) {
         auto active_view = get_active_view();
-        if (active_view && active_view->get_app_id().find("$unfocus") == 0)
-        {
+        if (active_view && active_view->get_app_id().find("$unfocus") == 0) {
             /* This is the case where for ex. a panel has grabbed input focus,
              * but user has clicked on another view so we want to dismiss the
              * grab. We can't do that straight away because the client still
@@ -237,16 +230,14 @@ void wf::output_impl_t::focus_view(wayfire_view v, uint32_t flags)
              * view on top, so that it gets the focus next. */
             update_active_view(nullptr, flags);
             make_view_visible(v);
-        } else
-        {
+        } else {
             LOGD("Denying focus request for a view from a lower layer than the"
-                " focused layer");
+                 " focused layer");
         }
         return;
     }
 
-    if (!v || !v->is_mapped())
-    {
+    if (!v || !v->is_mapped()) {
         update_active_view(nullptr, flags);
         return;
     }
@@ -254,9 +245,9 @@ void wf::output_impl_t::focus_view(wayfire_view v, uint32_t flags)
     while (v->parent && v->parent->is_mapped())
         v = v->parent;
 
-    /* If no keyboard focus surface is set, then we don't want to focus the view */
-    if (v->get_keyboard_focus_surface() || interactive_view_from_view(v.get()))
-    {
+    /* If no keyboard focus surface is set, then we don't want to focus the view
+     */
+    if (v->get_keyboard_focus_surface() || interactive_view_from_view(v.get())) {
         make_view_visible(v);
         update_active_view(v, flags);
 
@@ -276,8 +267,8 @@ void wf::output_impl_t::focus_view(wayfire_view v, bool raise)
 
 wayfire_view wf::output_t::get_top_view() const
 {
-    auto views = workspace->get_views_on_workspace(workspace->get_current_workspace(),
-        LAYER_WORKSPACE, false);
+    auto views = workspace->get_views_on_workspace(
+        workspace->get_current_workspace(), LAYER_WORKSPACE, false);
 
     return views.empty() ? nullptr : views[0];
 }
@@ -287,8 +278,8 @@ wayfire_view wf::output_impl_t::get_active_view() const
     return active_view;
 }
 
-bool wf::output_impl_t::can_activate_plugin(const plugin_grab_interface_uptr& owner,
-    uint32_t flags)
+bool wf::output_impl_t::can_activate_plugin(
+    const plugin_grab_interface_uptr& owner, uint32_t flags)
 {
     if (!owner)
         return false;
@@ -299,10 +290,8 @@ bool wf::output_impl_t::can_activate_plugin(const plugin_grab_interface_uptr& ow
     if (active_plugins.find(owner.get()) != active_plugins.end())
         return flags & wf::PLUGIN_ACTIVATE_ALLOW_MULTIPLE;
 
-    for(auto act_owner : active_plugins)
-    {
-        bool compatible =
-            ((act_owner->capabilities & owner->capabilities) == 0);
+    for (auto act_owner : active_plugins) {
+        bool compatible = ((act_owner->capabilities & owner->capabilities) == 0);
         if (!compatible)
             return false;
     }
@@ -310,15 +299,15 @@ bool wf::output_impl_t::can_activate_plugin(const plugin_grab_interface_uptr& ow
     return true;
 }
 
-bool wf::output_impl_t::activate_plugin(const plugin_grab_interface_uptr& owner,
-    uint32_t flags)
+bool wf::output_impl_t::activate_plugin(
+    const plugin_grab_interface_uptr& owner, uint32_t flags)
 {
     if (!can_activate_plugin(owner, flags))
         return false;
 
     if (active_plugins.find(owner.get()) != active_plugins.end()) {
-        LOGD("output ", handle->name,
-            ": activate plugin ", owner->name, " again");
+        LOGD(
+            "output ", handle->name, ": activate plugin ", owner->name, " again");
     } else {
         LOGD("output ", handle->name, ": activate plugin ", owner->name);
     }
@@ -327,8 +316,7 @@ bool wf::output_impl_t::activate_plugin(const plugin_grab_interface_uptr& owner,
     return true;
 }
 
-bool wf::output_impl_t::deactivate_plugin(
-    const plugin_grab_interface_uptr& owner)
+bool wf::output_impl_t::deactivate_plugin(const plugin_grab_interface_uptr& owner)
 {
     auto it = active_plugins.find(owner.get());
     if (it == active_plugins.end())
@@ -337,8 +325,7 @@ bool wf::output_impl_t::deactivate_plugin(
     active_plugins.erase(it);
     LOGD("output ", handle->name, ": deactivate plugin ", owner->name);
 
-    if (active_plugins.count(owner.get()) == 0)
-    {
+    if (active_plugins.count(owner.get()) == 0) {
         owner->ungrab();
         active_plugins.erase(owner.get());
         return true;
@@ -370,8 +357,7 @@ void wf::output_impl_t::inhibit_plugins()
     this->inhibited = true;
 
     std::vector<wf::plugin_grab_interface_t*> ifaces;
-    for (auto p : active_plugins)
-    {
+    for (auto p : active_plugins) {
         if (p->callbacks.cancel)
             ifaces.push_back(p);
     }
@@ -390,49 +376,56 @@ bool wf::output_impl_t::is_inhibited() const
     return this->inhibited;
 }
 
-/* simple wrappers for wf::get_core_impl().input, as it isn't exposed to plugins */
-wf::binding_t *wf::output_t::add_key(option_sptr_t<keybinding_t> key, wf::key_callback *callback)
+/* simple wrappers for wf::get_core_impl().input, as it isn't exposed to plugins
+ */
+wf::binding_t* wf::output_t::add_key(
+    option_sptr_t<keybinding_t> key, wf::key_callback* callback)
 {
-    return wf::get_core_impl().input->new_binding(WF_BINDING_KEY, key, this, callback);
+    return wf::get_core_impl().input->new_binding(
+        WF_BINDING_KEY, key, this, callback);
 }
 
-wf::binding_t *wf::output_t::add_axis(option_sptr_t<keybinding_t> axis, wf::axis_callback *callback)
+wf::binding_t* wf::output_t::add_axis(
+    option_sptr_t<keybinding_t> axis, wf::axis_callback* callback)
 {
-    return wf::get_core_impl().input->new_binding(WF_BINDING_AXIS, axis, this, callback);
+    return wf::get_core_impl().input->new_binding(
+        WF_BINDING_AXIS, axis, this, callback);
 }
 
-wf::binding_t *wf::output_t::add_touch(option_sptr_t<keybinding_t> mod, wf::touch_callback *callback)
+wf::binding_t* wf::output_t::add_touch(
+    option_sptr_t<keybinding_t> mod, wf::touch_callback* callback)
 {
-    return wf::get_core_impl().input->new_binding(WF_BINDING_TOUCH, mod, this, callback);
+    return wf::get_core_impl().input->new_binding(
+        WF_BINDING_TOUCH, mod, this, callback);
 }
 
-wf::binding_t *wf::output_t::add_button(option_sptr_t<buttonbinding_t> button,
-        wf::button_callback *callback)
+wf::binding_t* wf::output_t::add_button(
+    option_sptr_t<buttonbinding_t> button, wf::button_callback* callback)
 {
-    return wf::get_core_impl().input->new_binding(WF_BINDING_BUTTON, button,
-        this, callback);
+    return wf::get_core_impl().input->new_binding(
+        WF_BINDING_BUTTON, button, this, callback);
 }
 
-wf::binding_t *wf::output_t::add_gesture(option_sptr_t<touchgesture_t> gesture,
-        wf::gesture_callback *callback)
+wf::binding_t* wf::output_t::add_gesture(
+    option_sptr_t<touchgesture_t> gesture, wf::gesture_callback* callback)
 {
-    return wf::get_core_impl().input->new_binding(WF_BINDING_GESTURE, gesture,
-        this, callback);
+    return wf::get_core_impl().input->new_binding(
+        WF_BINDING_GESTURE, gesture, this, callback);
 }
 
-wf::binding_t *wf::output_t::add_activator(
-    option_sptr_t<activatorbinding_t> activator, wf::activator_callback *callback)
+wf::binding_t* wf::output_t::add_activator(
+    option_sptr_t<activatorbinding_t> activator, wf::activator_callback* callback)
 {
-    return wf::get_core_impl().input->new_binding(WF_BINDING_ACTIVATOR, activator,
-        this, callback);
+    return wf::get_core_impl().input->new_binding(
+        WF_BINDING_ACTIVATOR, activator, this, callback);
 }
 
-void wf::output_t::rem_binding(wf::binding_t *binding)
+void wf::output_t::rem_binding(wf::binding_t* binding)
 {
     wf::get_core_impl().input->rem_binding(binding);
 }
 
-void wf::output_t::rem_binding(void *callback)
+void wf::output_t::rem_binding(void* callback)
 {
     wf::get_core_impl().input->rem_binding(callback);
 }
@@ -442,12 +435,11 @@ namespace wf
 uint32_t all_layers_not_below(uint32_t layer)
 {
     uint32_t mask = 0;
-    for (int i = 0; i < wf::TOTAL_LAYERS; i++)
-    {
+    for (int i = 0; i < wf::TOTAL_LAYERS; i++) {
         if ((1u << i) >= layer)
             mask |= (1 << i);
     }
 
     return mask;
 }
-}
+} // namespace wf

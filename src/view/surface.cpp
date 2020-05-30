@@ -37,17 +37,17 @@ void wf::surface_interface_t::add_subsurface(
 {
     subsurface->priv->parent_surface = this;
     subsurface->set_output(get_output());
-    auto& container = is_below_parent ?
-        priv->surface_children_below : priv->surface_children_above;
+    auto& container = is_below_parent ? priv->surface_children_below :
+                                        priv->surface_children_above;
     container.insert(container.begin(), std::move(subsurface));
 }
 
 void wf::surface_interface_t::remove_subsurface(
     nonstd::observer_ptr<surface_interface_t> subsurface)
 {
-    auto remove_from = [=] (auto& container) {
+    auto remove_from = [=](auto& container) {
         auto it = std::remove_if(container.begin(), container.end(),
-            [=] (const auto& ptr) { return ptr.get() == subsurface.get(); });
+            [=](const auto& ptr) { return ptr.get() == subsurface.get(); });
         container.erase(it, container.end());
     };
 
@@ -55,10 +55,9 @@ void wf::surface_interface_t::remove_subsurface(
     remove_from(priv->surface_children_below);
 }
 
-wf::surface_interface_t::~surface_interface_t()
-{ }
+wf::surface_interface_t::~surface_interface_t() {}
 
-wf::surface_interface_t *wf::surface_interface_t::get_main_surface()
+wf::surface_interface_t* wf::surface_interface_t::get_main_surface()
 {
     if (priv->parent_surface)
         return priv->parent_surface->get_main_surface();
@@ -70,15 +69,13 @@ std::vector<wf::surface_iterator_t> wf::surface_interface_t::enumerate_surfaces(
     wf::point_t surface_origin)
 {
     std::vector<wf::surface_iterator_t> result;
-    auto add_surfaces_recursive = [&] (surface_interface_t* child)
-    {
+    auto add_surfaces_recursive = [&](surface_interface_t* child) {
         if (!child->is_mapped())
             return;
 
-        auto child_surfaces = child->enumerate_surfaces(
-            child->get_offset() + surface_origin);
-        result.insert(result.end(),
-            child_surfaces.begin(), child_surfaces.end());
+        auto child_surfaces =
+            child->enumerate_surfaces(child->get_offset() + surface_origin);
+        result.insert(result.end(), child_surfaces.begin(), child_surfaces.end());
     };
 
     for (auto& child : priv->surface_children_above)
@@ -93,7 +90,7 @@ std::vector<wf::surface_iterator_t> wf::surface_interface_t::enumerate_surfaces(
     return result;
 }
 
-wf::output_t *wf::surface_interface_t::get_output()
+wf::output_t* wf::surface_interface_t::get_output()
 {
     return priv->output;
 }
@@ -118,8 +115,7 @@ void wf::surface_interface_t::set_opaque_shrink_constraint(
     shrink_constraints[constraint_name] = value;
 
     impl::active_shrink_constraint = 0;
-    for (auto& constr : shrink_constraints)
-    {
+    for (auto& constr : shrink_constraints) {
         impl::active_shrink_constraint =
             std::max(impl::active_shrink_constraint, constr.second);
     }
@@ -167,13 +163,12 @@ wl_client* wf::surface_interface_t::get_client()
     return nullptr;
 }
 
-wlr_surface *wf::surface_interface_t::get_wlr_surface()
+wlr_surface* wf::surface_interface_t::get_wlr_surface()
 {
     return priv->wsurface;
 }
 
-void wf::surface_interface_t::damage_surface_region(
-    const wf::region_t& dmg)
+void wf::surface_interface_t::damage_surface_region(const wf::region_t& dmg)
 {
     for (const auto& rect : dmg)
         damage_surface_box(wlr_box_from_pixman_box(rect));
@@ -182,8 +177,7 @@ void wf::surface_interface_t::damage_surface_region(
 void wf::surface_interface_t::damage_surface_box(const wlr_box& box)
 {
     /* wlr_view_t overrides damage_surface_box and applies it to the output */
-    if (priv->parent_surface && priv->parent_surface->is_mapped())
-    {
+    if (priv->parent_surface && priv->parent_surface->is_mapped()) {
         wlr_box parent_box = box;
         parent_box.x += get_offset().x;
         parent_box.y += get_offset().y;
@@ -191,14 +185,12 @@ void wf::surface_interface_t::damage_surface_box(const wlr_box& box)
     }
 }
 
-wf::wlr_surface_base_t::wlr_surface_base_t(surface_interface_t *self)
+wf::wlr_surface_base_t::wlr_surface_base_t(surface_interface_t* self)
 {
     _as_si = self;
-    handle_new_subsurface = [&] (void* data)
-    {
-        auto sub = static_cast<wlr_subsurface*> (data);
-        if (sub->data)
-        {
+    handle_new_subsurface = [&](void* data) {
+        auto sub = static_cast<wlr_subsurface*>(data);
+        if (sub->data) {
             LOGE("Creating the same subsurface twice!");
             return;
         }
@@ -215,12 +207,10 @@ wf::wlr_surface_base_t::wlr_surface_base_t(surface_interface_t *self)
     };
 
     on_new_subsurface.set_callback(handle_new_subsurface);
-    on_commit.set_callback([&] (void*) { commit(); });
+    on_commit.set_callback([&](void*) { commit(); });
 }
 
 wf::wlr_surface_base_t::~wlr_surface_base_t() {}
-
-
 
 wf::point_t wf::wlr_surface_base_t::get_window_offset()
 {
@@ -243,16 +233,17 @@ wf::dimensions_t wf::wlr_surface_base_t::_get_size() const
     };
 }
 
-void wf::emit_map_state_change(wf::surface_interface_t *surface)
+void wf::emit_map_state_change(wf::surface_interface_t* surface)
 {
-    std::string state = surface->is_mapped() ? "_surface_mapped" : "_surface_unmapped";
+    std::string state =
+        surface->is_mapped() ? "_surface_mapped" : "_surface_unmapped";
 
     _surface_map_state_changed_signal data;
     data.surface = surface;
     wf::get_core().emit_signal(state, &data);
 }
 
-void wf::wlr_surface_base_t::map(wlr_surface *surface)
+void wf::wlr_surface_base_t::map(wlr_surface* surface)
 {
     assert(!this->surface && surface);
     this->surface = surface;
@@ -261,8 +252,9 @@ void wf::wlr_surface_base_t::map(wlr_surface *surface)
 
     /* force surface_send_enter(), and also check whether parent surface
      * output hasn't changed while we were unmapped */
-    wf::output_t *output = _as_si->priv->parent_surface ?
-        _as_si->priv->parent_surface->get_output() : _as_si->get_output();
+    wf::output_t* output = _as_si->priv->parent_surface ?
+                               _as_si->priv->parent_surface->get_output() :
+                               _as_si->get_output();
     _as_si->set_output(output);
 
     on_new_subsurface.connect(&surface->events.new_subsurface);
@@ -271,7 +263,7 @@ void wf::wlr_surface_base_t::map(wlr_surface *surface)
     surface->data = _as_si;
 
     /* Handle subsurfaces which were created before this surface was mapped */
-    wlr_subsurface *sub;
+    wlr_subsurface* sub;
     wl_list_for_each(sub, &surface->subsurfaces, parent_link)
         handle_new_subsurface(sub);
 
@@ -282,8 +274,10 @@ void wf::wlr_surface_base_t::unmap()
 {
     assert(this->surface);
     apply_surface_damage();
-    _as_si->damage_surface_box({.x = 0, .y = 0,
-        .width = _get_size().width, .height = _get_size().height});
+    _as_si->damage_surface_box({.x = 0,
+        .y = 0,
+        .width = _get_size().width,
+        .height = _get_size().height});
 
     this->surface->data = NULL;
     this->surface = nullptr;
@@ -321,16 +315,15 @@ void wf::wlr_surface_base_t::apply_surface_damage()
 void wf::wlr_surface_base_t::commit()
 {
     apply_surface_damage();
-    if (_as_si->get_output())
-    {
+    if (_as_si->get_output()) {
         /* we schedule redraw, because the surface might expect
          * a frame callback */
         _as_si->get_output()->render->schedule_redraw();
     }
 }
 
-void wf::wlr_surface_base_t::update_output(wf::output_t *old_output,
-    wf::output_t *new_output)
+void wf::wlr_surface_base_t::update_output(
+    wf::output_t* old_output, wf::output_t* new_output)
 {
     /* We should send send_leave only if the output is different from the last. */
     if (old_output && old_output != new_output && surface)
@@ -340,19 +333,18 @@ void wf::wlr_surface_base_t::update_output(wf::output_t *old_output,
         wlr_surface_send_enter(surface, new_output->handle);
 }
 
-void wf::wlr_surface_base_t::_simple_render(const wf::framebuffer_t& fb,
-    int x, int y, const wf::region_t& damage)
+void wf::wlr_surface_base_t::_simple_render(
+    const wf::framebuffer_t& fb, int x, int y, const wf::region_t& damage)
 {
     if (!get_buffer())
         return;
 
     auto size = this->_get_size();
-    wf::geometry_t geometry = { x, y, size.width, size.height };
+    wf::geometry_t geometry = {x, y, size.width, size.height};
     wf::texture_t texture{surface->buffer->texture};
 
     OpenGL::render_begin(fb);
-    for (const auto& rect : damage)
-    {
+    for (const auto& rect : damage) {
         fb.logic_scissor(wlr_box_from_pixman_box(rect));
         OpenGL::render_texture(texture, fb, geometry);
     }
@@ -360,7 +352,8 @@ void wf::wlr_surface_base_t::_simple_render(const wf::framebuffer_t& fb,
 }
 
 wf::wlr_child_surface_base_t::wlr_child_surface_base_t(
-    surface_interface_t *self) : wlr_surface_base_t(self)
-{ }
+    surface_interface_t* self) :
+    wlr_surface_base_t(self)
+{}
 
-wf::wlr_child_surface_base_t::~wlr_child_surface_base_t() { }
+wf::wlr_child_surface_base_t::~wlr_child_surface_base_t() {}

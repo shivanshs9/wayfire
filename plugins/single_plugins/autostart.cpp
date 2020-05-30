@@ -17,8 +17,7 @@ class wayfire_autostart
         bool panel_manually_started = false;
         bool background_manually_started = false;
 
-        for (const auto& command : section->get_registered_options())
-        {
+        for (const auto& command : section->get_registered_options()) {
             auto cmd = command->get_value_str();
             wf::get_core().run(cmd);
 

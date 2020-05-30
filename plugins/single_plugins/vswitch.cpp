@@ -25,8 +25,10 @@ class vswitch_animation_t : public duration_t
 class vswitch : public wf::plugin_interface_t
 {
   private:
-    wf::activator_callback callback_left, callback_right, callback_up, callback_down;
-    wf::activator_callback callback_win_left, callback_win_right, callback_win_up, callback_win_down;
+    wf::activator_callback callback_left, callback_right, callback_up,
+        callback_down;
+    wf::activator_callback callback_win_left, callback_win_right, callback_win_up,
+        callback_win_down;
 
     wf::option_wrapper_t<int> gap{"vswitch/gap"};
     wf::option_wrapper_t<wf::color_t> background_color{"vswitch/background"};
@@ -40,8 +42,8 @@ class vswitch : public wf::plugin_interface_t
     wayfire_view get_top_view()
     {
         auto ws = output->workspace->get_current_workspace();
-        auto views = output->workspace->get_views_on_workspace(ws,
-            wf::LAYER_WORKSPACE, true);
+        auto views = output->workspace->get_views_on_workspace(
+            ws, wf::LAYER_WORKSPACE, true);
 
         return views.empty() ? nullptr : views[0];
     }
@@ -50,41 +52,68 @@ class vswitch : public wf::plugin_interface_t
     {
         grab_interface->name = "vswitch";
         grab_interface->capabilities = wf::CAPABILITY_MANAGE_DESKTOP;
-        grab_interface->callbacks.cancel = [=] () {stop_switch();};
+        grab_interface->callbacks.cancel = [=]() {
+            stop_switch();
+        };
 
-        callback_left  = [=] (wf::activator_source_t, uint32_t) { return add_direction(-1,  0); };
-        callback_right = [=] (wf::activator_source_t, uint32_t) { return add_direction( 1,  0); };
-        callback_up    = [=] (wf::activator_source_t, uint32_t) { return add_direction( 0, -1); };
-        callback_down  = [=] (wf::activator_source_t, uint32_t) { return add_direction( 0,  1); };
+        callback_left = [=](wf::activator_source_t, uint32_t) {
+            return add_direction(-1, 0);
+        };
+        callback_right = [=](wf::activator_source_t, uint32_t) {
+            return add_direction(1, 0);
+        };
+        callback_up = [=](wf::activator_source_t, uint32_t) {
+            return add_direction(0, -1);
+        };
+        callback_down = [=](wf::activator_source_t, uint32_t) {
+            return add_direction(0, 1);
+        };
 
-        callback_win_left  = [=] (wf::activator_source_t, uint32_t) { return add_direction(-1,  0, get_top_view()); };
-        callback_win_right = [=] (wf::activator_source_t, uint32_t) { return add_direction( 1,  0, get_top_view()); };
-        callback_win_up    = [=] (wf::activator_source_t, uint32_t) { return add_direction( 0, -1, get_top_view()); };
-        callback_win_down  = [=] (wf::activator_source_t, uint32_t) { return add_direction( 0,  1, get_top_view()); };
+        callback_win_left = [=](wf::activator_source_t, uint32_t) {
+            return add_direction(-1, 0, get_top_view());
+        };
+        callback_win_right = [=](wf::activator_source_t, uint32_t) {
+            return add_direction(1, 0, get_top_view());
+        };
+        callback_win_up = [=](wf::activator_source_t, uint32_t) {
+            return add_direction(0, -1, get_top_view());
+        };
+        callback_win_down = [=](wf::activator_source_t, uint32_t) {
+            return add_direction(0, 1, get_top_view());
+        };
 
-        wf::option_wrapper_t<wf::activatorbinding_t> binding_left{"vswitch/binding_left"};
-        wf::option_wrapper_t<wf::activatorbinding_t> binding_right{"vswitch/binding_right"};
-        wf::option_wrapper_t<wf::activatorbinding_t> binding_up{"vswitch/binding_up"};
-        wf::option_wrapper_t<wf::activatorbinding_t> binding_down{"vswitch/binding_down"};
+        wf::option_wrapper_t<wf::activatorbinding_t> binding_left{
+            "vswitch/binding_left"};
+        wf::option_wrapper_t<wf::activatorbinding_t> binding_right{
+            "vswitch/binding_right"};
+        wf::option_wrapper_t<wf::activatorbinding_t> binding_up{
+            "vswitch/binding_up"};
+        wf::option_wrapper_t<wf::activatorbinding_t> binding_down{
+            "vswitch/binding_down"};
 
-        wf::option_wrapper_t<wf::activatorbinding_t> binding_win_left{"vswitch/binding_win_left"};
-        wf::option_wrapper_t<wf::activatorbinding_t> binding_win_right{"vswitch/binding_win_right"};
-        wf::option_wrapper_t<wf::activatorbinding_t> binding_win_up{"vswitch/binding_win_up"};
-        wf::option_wrapper_t<wf::activatorbinding_t> binding_win_down{"vswitch/binding_win_down"};
+        wf::option_wrapper_t<wf::activatorbinding_t> binding_win_left{
+            "vswitch/binding_win_left"};
+        wf::option_wrapper_t<wf::activatorbinding_t> binding_win_right{
+            "vswitch/binding_win_right"};
+        wf::option_wrapper_t<wf::activatorbinding_t> binding_win_up{
+            "vswitch/binding_win_up"};
+        wf::option_wrapper_t<wf::activatorbinding_t> binding_win_down{
+            "vswitch/binding_win_down"};
 
-        output->add_activator(binding_left,  &callback_left);
+        output->add_activator(binding_left, &callback_left);
         output->add_activator(binding_right, &callback_right);
-        output->add_activator(binding_up,    &callback_up);
-        output->add_activator(binding_down,  &callback_down);
+        output->add_activator(binding_up, &callback_up);
+        output->add_activator(binding_down, &callback_down);
 
-        output->add_activator(binding_win_left,  &callback_win_left);
+        output->add_activator(binding_win_left, &callback_win_left);
         output->add_activator(binding_win_right, &callback_win_right);
-        output->add_activator(binding_win_up,    &callback_win_up);
-        output->add_activator(binding_win_down,  &callback_win_down);
+        output->add_activator(binding_win_up, &callback_win_up);
+        output->add_activator(binding_win_down, &callback_win_down);
 
-        animation = vswitch_animation_t{
-            wf::option_wrapper_t<int> {"vswitch/duration"}};
-        output->connect_signal("set-workspace-request", &on_set_workspace_request);
+        animation =
+            vswitch_animation_t{wf::option_wrapper_t<int>{"vswitch/duration"}};
+        output->connect_signal(
+            "set-workspace-request", &on_set_workspace_request);
 
         output->connect_signal("view-disappeared", &on_grabbed_view_disappear);
         output->connect_signal("detach-view", &on_grabbed_view_disappear);
@@ -109,8 +138,7 @@ class vswitch : public wf::plugin_interface_t
         if (view && view->role != wf::VIEW_ROLE_TOPLEVEL)
             view = nullptr;
 
-        if (view && !grabbed_view)
-        {
+        if (view && !grabbed_view) {
             grabbed_view = view;
             view->add_transformer(std::make_unique<wf::view_2D>(view),
                 vswitch_view_transformer_name);
@@ -122,7 +150,8 @@ class vswitch : public wf::plugin_interface_t
         auto cws = output->workspace->get_current_workspace();
         auto wsize = output->workspace->get_workspace_grid_size();
         int tvx = wf::clamp(cws.x + animation.dx.end + x, 0.0, wsize.width - 1.0);
-        int tvy = wf::clamp(cws.y + animation.dy.end + y, 0.0, wsize.height - 1.0);
+        int tvy =
+            wf::clamp(cws.y + animation.dy.end + y, 0.0, wsize.height - 1.0);
 
         animation.dx.restart_with_end(1.0 * tvx - cws.x);
         animation.dy.restart_with_end(1.0 * tvy - cws.y);
@@ -140,22 +169,22 @@ class vswitch : public wf::plugin_interface_t
         this->grabbed_view = nullptr;
     }
 
-    wf::signal_connection_t on_grabbed_view_disappear = {[=] (wf::signal_data_t *data)
-    {
-        if (get_signaled_view(data) == this->grabbed_view)
-            unset_grabbed_view();
-    }};
+    wf::signal_connection_t on_grabbed_view_disappear = {
+        [=](wf::signal_data_t* data) {
+            if (get_signaled_view(data) == this->grabbed_view)
+                unset_grabbed_view();
+        }};
 
-    wf::signal_connection_t on_set_workspace_request = {[=] (wf::signal_data_t *data)
-    {
-        if (is_active())
-            return;
+    wf::signal_connection_t on_set_workspace_request = {
+        [=](wf::signal_data_t* data) {
+            if (is_active())
+                return;
 
-        auto ev = static_cast<change_viewport_signal*> (data);
-        ev->carried_out = true;
-        add_direction(ev->new_viewport.x - ev->old_viewport.x,
-            ev->new_viewport.y - ev->old_viewport.y);
-    }};
+            auto ev = static_cast<change_viewport_signal*>(data);
+            ev->carried_out = true;
+            add_direction(ev->new_viewport.x - ev->old_viewport.x,
+                ev->new_viewport.y - ev->old_viewport.y);
+        }};
 
     bool start_switch()
     {
@@ -164,7 +193,7 @@ class vswitch : public wf::plugin_interface_t
 
         wall->set_gap_size(gap);
         wall->set_viewport(wall->get_workspace_rectangle(
-                output->workspace->get_current_workspace()));
+            output->workspace->get_current_workspace()));
         wall->set_background_color(background_color);
         wall->start_output_renderer();
 
@@ -180,8 +209,8 @@ class vswitch : public wf::plugin_interface_t
             return;
 
         double progress = animation.progress();
-        auto tr = dynamic_cast<wf::view_2D*>( grabbed_view->get_transformer(
-                vswitch_view_transformer_name).get());
+        auto tr = dynamic_cast<wf::view_2D*>(
+            grabbed_view->get_transformer(vswitch_view_transformer_name).get());
 
         static constexpr double smoothing_in = 0.4;
         static constexpr double smoothing_out = 0.2;
@@ -190,7 +219,8 @@ class vswitch : public wf::plugin_interface_t
         if (progress <= smoothing_in) {
             tr->alpha = 1.0 - (smoothing_amount / smoothing_in) * progress;
         } else if (progress >= 1.0 - smoothing_out) {
-            tr->alpha = 1.0 - (smoothing_amount / smoothing_out) * (1.0 - progress);
+            tr->alpha =
+                1.0 - (smoothing_amount / smoothing_out) * (1.0 - progress);
         } else {
             tr->alpha = smoothing_amount;
         }
@@ -199,8 +229,7 @@ class vswitch : public wf::plugin_interface_t
     }
 
     wf::wl_idle_call idle_update_grabbed_view;
-    wf::signal_connection_t on_frame = {[=] (wf::signal_data_t* data)
-    {
+    wf::signal_connection_t on_frame = {[=](wf::signal_data_t* data) {
         auto start = wall->get_workspace_rectangle(
             output->workspace->get_current_workspace());
         auto size = output->get_screen_size();
@@ -230,8 +259,7 @@ class vswitch : public wf::plugin_interface_t
         auto output_g = output->get_relative_geometry();
         output->workspace->set_workspace(cws);
 
-        if (grabbed_view)
-        {
+        if (grabbed_view) {
             grabbed_view->pop_transformer(vswitch_view_transformer_name);
             auto wm = grabbed_view->get_wm_geometry();
             grabbed_view->move(wm.x + animation.dx.end * output_g.width,

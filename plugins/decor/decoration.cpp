@@ -18,11 +18,9 @@ struct wayfire_decoration_global_cleanup_t
 class wayfire_decoration :
     public wf::singleton_plugin_t<wayfire_decoration_global_cleanup_t, true>
 {
-    wf::signal_connection_t view_updated {
-        [=] (wf::signal_data_t *data)
-        {
-            update_view_decoration(get_signaled_view(data));
-        }};
+    wf::signal_connection_t view_updated{[=](wf::signal_data_t* data) {
+        update_view_decoration(get_signaled_view(data));
+    }};
 
   public:
     void init() override
@@ -38,17 +36,13 @@ class wayfire_decoration :
     wf::wl_idle_call idle_deactivate;
     void update_view_decoration(wayfire_view view)
     {
-        if (view->should_be_decorated())
-        {
-            if (output->activate_plugin(grab_interface))
-            {
+        if (view->should_be_decorated()) {
+            if (output->activate_plugin(grab_interface)) {
                 init_view(view);
-                idle_deactivate.run_once([this] () {
-                    output->deactivate_plugin(grab_interface);
-                });
+                idle_deactivate.run_once(
+                    [this]() { output->deactivate_plugin(grab_interface); });
             }
-        } else
-        {
+        } else {
             view->set_decoration(nullptr);
         }
     }

@@ -24,15 +24,14 @@ class wayfire_expo : public wf::plugin_interface_t
   private:
     wf::point_t convert_workspace_index_to_coords(int index)
     {
-        index--; //compensate for indexing from 0
+        index--; // compensate for indexing from 0
         auto wsize = output->workspace->get_workspace_grid_size();
         int x = index % wsize.width;
         int y = index / wsize.width;
         return wf::point_t{x, y};
     }
 
-    wf::activator_callback toggle_cb = [=] (wf::activator_source_t, uint32_t)
-    {
+    wf::activator_callback toggle_cb = [=](wf::activator_source_t, uint32_t) {
         if (!state.active) {
             return activate();
         } else {
@@ -51,16 +50,16 @@ class wayfire_expo : public wf::plugin_interface_t
     wf::option_wrapper_t<int> delimiter_offset{"expo/offset"};
     wf::geometry_animation_t zoom_animation{zoom_duration};
 
-
     std::vector<wf::activator_callback> keyboard_select_cbs;
-    std::vector<wf::option_sptr_t<wf::activatorbinding_t>> keyboard_select_options;
-    wf::signal_callback_t view_removed = [=] (wf::signal_data_t *event)
-    {
+    std::vector<wf::option_sptr_t<wf::activatorbinding_t>>
+        keyboard_select_options;
+    wf::signal_callback_t view_removed = [=](wf::signal_data_t* event) {
         if (get_signaled_view(event) == moving_view)
             end_move(true);
     };
 
-    struct {
+    struct
+    {
         bool active = false;
         bool button_pressed = false;
         bool zoom_in = false;
@@ -76,37 +75,36 @@ class wayfire_expo : public wf::plugin_interface_t
 
         std::vector<std::string> workspace_numbers;
         const std::string select_prefix = "select_workspace_";
-        for (auto binding : section->get_registered_options())
-        {
-            if (begins_with(binding->get_name(), select_prefix))
-            {
+        for (auto binding : section->get_registered_options()) {
+            if (begins_with(binding->get_name(), select_prefix)) {
                 workspace_numbers.push_back(
                     binding->get_name().substr(select_prefix.length()));
             }
         }
 
-        for (size_t i = 0; i < workspace_numbers.size(); i++)
-        {
+        for (size_t i = 0; i < workspace_numbers.size(); i++) {
             auto binding = select_prefix + workspace_numbers[i];
             int workspace_index = atoi(workspace_numbers[i].c_str());
 
             auto wsize = output->workspace->get_workspace_grid_size();
-            if (workspace_index > (wsize.width * wsize.height) || workspace_index < 1){
+            if (workspace_index > (wsize.width * wsize.height) ||
+                workspace_index < 1) {
                 continue;
             }
 
-            wf::point_t target = convert_workspace_index_to_coords(workspace_index);
+            wf::point_t target =
+                convert_workspace_index_to_coords(workspace_index);
 
             auto opt = section->get_option(binding);
-            auto value = wf::option_type::from_string<wf::activatorbinding_t> (opt->get_value_str());
+            auto value = wf::option_type::from_string<wf::activatorbinding_t>(
+                opt->get_value_str());
             keyboard_select_options.push_back(wf::create_option(value.value()));
 
-            keyboard_select_cbs.push_back([=] (wf::activator_source_t, uint32_t)
-            {
+            keyboard_select_cbs.push_back([=](wf::activator_source_t, uint32_t) {
                 if (!state.active) {
                     return false;
                 } else {
-                    if (!zoom_animation.running() || state.zoom_in){
+                    if (!zoom_animation.running() || state.zoom_in) {
                         target_vx = target.x;
                         target_vy = target.y;
                         deactivate();
@@ -123,45 +121,44 @@ class wayfire_expo : public wf::plugin_interface_t
         grab_interface->capabilities = wf::CAPABILITY_MANAGE_COMPOSITOR;
 
         setup_workspace_bindings_from_config();
-        wall = std::make_unique<wf::workspace_wall_t> (this->output);
+        wall = std::make_unique<wf::workspace_wall_t>(this->output);
         wall->connect_signal("frame", &on_frame);
 
         output->add_activator(toggle_binding, &toggle_cb);
-        grab_interface->callbacks.pointer.button = [=] (uint32_t button, uint32_t state)
-        {
+        grab_interface->callbacks.pointer.button = [=](uint32_t button,
+                                                       uint32_t state) {
             if (button != BTN_LEFT)
                 return;
 
             auto gc = output->get_cursor_position();
             handle_input_press(gc.x, gc.y, state);
         };
-        grab_interface->callbacks.pointer.motion = [=] (int32_t x, int32_t y)
-        {
+        grab_interface->callbacks.pointer.motion = [=](int32_t x, int32_t y) {
             handle_input_move({x, y});
         };
 
-        grab_interface->callbacks.touch.down = [=] (int32_t id, wl_fixed_t sx, wl_fixed_t sy)
-        {
-            if (id > 0) return;
+        grab_interface->callbacks.touch.down = [=](int32_t id, wl_fixed_t sx,
+                                                   wl_fixed_t sy) {
+            if (id > 0)
+                return;
             handle_input_press(sx, sy, WLR_BUTTON_PRESSED);
         };
 
-        grab_interface->callbacks.touch.up = [=] (int32_t id)
-        {
-            if (id > 0) return;
+        grab_interface->callbacks.touch.up = [=](int32_t id) {
+            if (id > 0)
+                return;
             handle_input_press(0, 0, WLR_BUTTON_RELEASED);
         };
 
-        grab_interface->callbacks.touch.motion = [=] (int32_t id, int32_t sx, int32_t sy)
-        {
+        grab_interface->callbacks.touch.motion = [=](int32_t id, int32_t sx,
+                                                     int32_t sy) {
             if (id > 0) // we handle just the first finger
                 return;
 
             handle_input_move({sx, sy});
         };
 
-        grab_interface->callbacks.cancel = [=] ()
-        {
+        grab_interface->callbacks.cancel = [=]() {
             finalize_and_exit();
         };
 
@@ -185,7 +182,8 @@ class wayfire_expo : public wf::plugin_interface_t
         target_vy = cws.y;
 
         for (size_t i = 0; i < keyboard_select_cbs.size(); i++)
-            output->add_activator(keyboard_select_options[i], &keyboard_select_cbs[i]);
+            output->add_activator(
+                keyboard_select_options[i], &keyboard_select_cbs[i]);
 
         return true;
     }
@@ -194,10 +192,9 @@ class wayfire_expo : public wf::plugin_interface_t
     {
         wall->set_background_color(background_color);
         wall->set_gap_size(this->delimiter_offset);
-        if (zoom_in)
-        {
+        if (zoom_in) {
             zoom_animation.set_start(wall->get_workspace_rectangle(
-                    output->workspace->get_current_workspace()));
+                output->workspace->get_current_workspace()));
 
             /* Make sure workspaces are centered */
             auto wsize = output->workspace->get_workspace_grid_size();
@@ -214,8 +211,7 @@ class wayfire_expo : public wf::plugin_interface_t
             rectangle.width = fullw;
             rectangle.height = fullh;
             zoom_animation.set_end(rectangle);
-        } else
-        {
+        } else {
             zoom_animation.set_start(zoom_animation);
             zoom_animation.set_end(
                 wall->get_workspace_rectangle({target_vx, target_vy}));
@@ -278,8 +274,7 @@ class wayfire_expo : public wf::plugin_interface_t
         if (!state.button_pressed)
             return;
 
-        if (abs(to - input_grab_origin) < 5)
-        {
+        if (abs(to - input_grab_origin) < 5) {
             /* Ignore small movements */
             return;
         }
@@ -289,14 +284,12 @@ class wayfire_expo : public wf::plugin_interface_t
          * subsequent motion eveennts while grabbed are allowed */
         input_grab_origin = offscreen_point;
 
-        if (!zoom_animation.running() && first_click)
-        {
+        if (!zoom_animation.running() && first_click) {
             start_move(find_view_at_coordinates(to.x, to.y), to);
             /* Fall through to the moving view case */
         }
 
-        if (moving_view)
-        {
+        if (moving_view) {
             int global_x = to.x, global_y = to.y;
             input_coordinates_to_global_coordinates(global_x, global_y);
 
@@ -325,9 +318,8 @@ class wayfire_expo : public wf::plugin_interface_t
 
         output->workspace->bring_to_front(moving_view);
 
-        moving_view->store_data(
-            std::make_unique<wf::move_snap_helper_t>(moving_view,
-                input_coordinates_to_output_local_coordinates(grab)));
+        moving_view->store_data(std::make_unique<wf::move_snap_helper_t>(
+            moving_view, input_coordinates_to_output_local_coordinates(grab)));
 
         wf::get_core().set_cursor("grabbing");
     }
@@ -343,12 +335,11 @@ class wayfire_expo : public wf::plugin_interface_t
         if (!moving_view)
             return;
 
-        if (!view_destroyed)
-        {
+        if (!view_destroyed) {
             view_change_viewport_signal data;
             data.view = moving_view;
             data.from = move_started_ws;
-            data.to   = {target_vx, target_vy};
+            data.to = {target_vx, target_vy};
             output->emit_signal("view-change-viewport", &data);
 
             MOVE_HELPER->handle_input_released();
@@ -362,7 +353,7 @@ class wayfire_expo : public wf::plugin_interface_t
      * Find the coordinate of the given point from output-local coordinates
      * to coordinates relative to the first workspace (i.e (0,0))
      */
-    void input_coordinates_to_global_coordinates(int &sx, int &sy)
+    void input_coordinates_to_global_coordinates(int& sx, int& sy)
     {
         auto og = output->get_layout_geometry();
 
@@ -403,8 +394,7 @@ class wayfire_expo : public wf::plugin_interface_t
         auto local = input_coordinates_to_output_local_coordinates({gx, gy});
         /* TODO: adjust to delimiter offset */
 
-        for (auto& view : output->workspace->get_views_in_layer(wf::WM_LAYERS))
-        {
+        for (auto& view : output->workspace->get_views_in_layer(wf::WM_LAYERS)) {
             if (view->get_wm_geometry() & local)
                 return view;
         }
@@ -412,7 +402,8 @@ class wayfire_expo : public wf::plugin_interface_t
         return nullptr;
     }
 
-    void update_target_workspace(int x, int y) {
+    void update_target_workspace(int x, int y)
+    {
         auto og = output->get_layout_geometry();
 
         input_coordinates_to_global_coordinates(x, y);
@@ -425,15 +416,11 @@ class wayfire_expo : public wf::plugin_interface_t
         target_vy = y / og.height;
     }
 
-    wf::signal_connection_t on_frame = {[=] (wf::signal_data_t*)
-    {
-        if (zoom_animation.running())
-        {
+    wf::signal_connection_t on_frame = {[=](wf::signal_data_t*) {
+        if (zoom_animation.running()) {
             output->render->schedule_redraw();
             wall->set_viewport(zoom_animation);
-        }
-        else if (!state.zoom_in)
-        {
+        } else if (!state.zoom_in) {
             finalize_and_exit();
         }
     }};

@@ -4,13 +4,13 @@
 #include "wayfire/signal-definitions.hpp"
 #include <wayfire/util/log.hpp>
 
-wf::plugin_grab_interface_t::plugin_grab_interface_t(wf::output_t *wo)
-    : output(wo) { }
+wf::plugin_grab_interface_t::plugin_grab_interface_t(wf::output_t* wo) :
+    output(wo)
+{}
 
 bool wf::plugin_grab_interface_t::grab()
 {
-    if (!(capabilities & CAPABILITY_GRAB_INPUT))
-    {
+    if (!(capabilities & CAPABILITY_GRAB_INPUT)) {
         LOGE("attempt to grab iface ", name, " without input grabbing ability");
         return false;
     }
@@ -47,11 +47,10 @@ bool wf::plugin_grab_interface_t::is_grabbed()
 void wf::plugin_interface_t::fini() {}
 wf::plugin_interface_t::~plugin_interface_t() {}
 
-wayfire_view get_signaled_view(wf::signal_data_t *data)
+wayfire_view get_signaled_view(wf::signal_data_t* data)
 {
-    auto conv = static_cast<_view_signal*> (data);
-    if (!conv)
-    {
+    auto conv = static_cast<_view_signal*>(data);
+    if (!conv) {
         LOGE("Got a bad _view_signal");
         return nullptr;
     }
@@ -59,9 +58,8 @@ wayfire_view get_signaled_view(wf::signal_data_t *data)
     return conv->view;
 }
 
-wf::output_t *get_signaled_output(wf::signal_data_t *data)
+wf::output_t* get_signaled_output(wf::signal_data_t* data)
 {
-    auto result = static_cast<_output_signal*> (data);
+    auto result = static_cast<_output_signal*>(data);
     return result ? result->output : nullptr;
 }
-

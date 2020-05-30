@@ -33,19 +33,29 @@ class tile_workspace_implementation_t : public wf::workspace_implementation_t
  * 3. We now know we will receive attach as next event.
  *    Check for view_auto_tile_t, and tile the view again.
  */
-class view_auto_tile_t : public wf::custom_data_t { };
+class view_auto_tile_t : public wf::custom_data_t
+{
+};
 
 class tile_plugin_t : public wf::plugin_interface_t
 {
   private:
     wf::view_matcher_t tile_by_default{"simple-tile/tile_by_default"};
-    wf::option_wrapper_t<bool> keep_fullscreen_on_adjacent{"simple-tile/keep_fullscreen_on_adjacent"};
-    wf::option_wrapper_t<wf::buttonbinding_t> button_move{"simple-tile/button_move"}, button_resize{"simple-tile/button_resize"};
-    wf::option_wrapper_t<wf::keybinding_t> key_toggle_tile{"simple-tile/key_toggle"}, key_toggle_fullscreen{"simple-tile/key_toggle_fullscreen"};
+    wf::option_wrapper_t<bool> keep_fullscreen_on_adjacent{
+        "simple-tile/keep_fullscreen_on_adjacent"};
+    wf::option_wrapper_t<wf::buttonbinding_t> button_move{
+        "simple-tile/button_move"},
+        button_resize{"simple-tile/button_resize"};
+    wf::option_wrapper_t<wf::keybinding_t> key_toggle_tile{
+        "simple-tile/key_toggle"},
+        key_toggle_fullscreen{"simple-tile/key_toggle_fullscreen"};
 
-    wf::option_wrapper_t<wf::keybinding_t> key_focus_left{"simple-tile/key_focus_left"}, key_focus_right{"simple-tile/key_focus_right"};
-    wf::option_wrapper_t<wf::keybinding_t> key_focus_above{"simple-tile/key_focus_above"}, key_focus_below{"simple-tile/key_focus_below"};
-
+    wf::option_wrapper_t<wf::keybinding_t> key_focus_left{
+        "simple-tile/key_focus_left"},
+        key_focus_right{"simple-tile/key_focus_right"};
+    wf::option_wrapper_t<wf::keybinding_t> key_focus_above{
+        "simple-tile/key_focus_above"},
+        key_focus_below{"simple-tile/key_focus_below"};
 
   private:
     std::vector<std::vector<std::unique_ptr<wf::tile::tree_node_t>>> roots;
@@ -58,12 +68,10 @@ class tile_plugin_t : public wf::plugin_interface_t
         auto wsize = output->workspace->get_workspace_grid_size();
         roots.resize(wsize.width);
         tiled_sublayer.resize(wsize.width);
-        for (int i = 0; i < wsize.width; i++)
-        {
+        for (int i = 0; i < wsize.width; i++) {
             roots[i].resize(wsize.height);
             tiled_sublayer[i].resize(wsize.height);
-            for (int j = 0; j < wsize.height; j++)
-            {
+            for (int j = 0; j < wsize.height; j++) {
                 roots[i][j] =
                     std::make_unique<wf::tile::split_node_t>(default_split);
                 tiled_sublayer[i][j] = output->workspace->create_sublayer(
@@ -78,10 +86,8 @@ class tile_plugin_t : public wf::plugin_interface_t
     {
         auto output_geometry = output->get_relative_geometry();
         auto wsize = output->workspace->get_workspace_grid_size();
-        for (int i = 0; i < wsize.width; i++)
-        {
-            for (int j = 0; j < wsize.height; j++)
-            {
+        for (int i = 0; i < wsize.width; i++) {
+            for (int j = 0; j < wsize.height; j++) {
                 /* Set size */
                 auto vp_geometry = workarea;
                 vp_geometry.x += i * output_geometry.width;
@@ -93,8 +99,7 @@ class tile_plugin_t : public wf::plugin_interface_t
 
     void flatten_roots()
     {
-        for (auto& col : roots)
-        {
+        for (auto& col : roots) {
             for (auto& root : col)
                 tile::flatten_tree(root);
         }
@@ -113,7 +118,7 @@ class tile_plugin_t : public wf::plugin_interface_t
 
     static std::unique_ptr<wf::tile::tile_controller_t> get_default_controller()
     {
-        return std::make_unique<wf::tile::tile_controller_t> ();
+        return std::make_unique<wf::tile::tile_controller_t>();
     }
 
     std::unique_ptr<wf::tile::tile_controller_t> controller =
@@ -139,9 +144,8 @@ class tile_plugin_t : public wf::plugin_interface_t
         auto vp = output->workspace->get_current_workspace();
 
         int count_fullscreen = 0;
-        for_each_view(roots[vp.x][vp.y], [&] (wayfire_view view) {
-            count_fullscreen += view->fullscreen;
-        });
+        for_each_view(roots[vp.x][vp.y],
+            [&](wayfire_view view) { count_fullscreen += view->fullscreen; });
 
         return count_fullscreen > 0;
     }
@@ -153,8 +157,7 @@ class tile_plugin_t : public wf::plugin_interface_t
         return focus && tile::view_node_t::get_node(focus);
     }
 
-    template<class Controller>
-    bool start_controller(wf::point_t grab)
+    template<class Controller> bool start_controller(wf::point_t grab)
     {
         /* No action possible in this case */
         if (has_fullscreen_view() || !has_tiled_focus())
@@ -163,13 +166,11 @@ class tile_plugin_t : public wf::plugin_interface_t
         if (!output->activate_plugin(grab_interface))
             return false;
 
-        if (grab_interface->grab())
-        {
+        if (grab_interface->grab()) {
             auto vp = output->workspace->get_current_workspace();
-            controller = std::make_unique<Controller> (
+            controller = std::make_unique<Controller>(
                 roots[vp.x][vp.y], get_global_coordinates(grab));
-        } else
-        {
+        } else {
             output->deactivate_plugin(grab_interface);
         }
 
@@ -198,7 +199,7 @@ class tile_plugin_t : public wf::plugin_interface_t
         if (vp == wf::point_t{-1, -1})
             vp = output->workspace->get_current_workspace();
 
-        auto view_node = std::make_unique<wf::tile::view_node_t> (view);
+        auto view_node = std::make_unique<wf::tile::view_node_t>(view);
         roots[vp.x][vp.y]->as_split_node()->add_child(std::move(view_node));
         output->workspace->add_view_to_sublayer(view, tiled_sublayer[vp.x][vp.y]);
         output->workspace->bring_to_front(view); // bring that layer to the front
@@ -209,29 +210,26 @@ class tile_plugin_t : public wf::plugin_interface_t
         return tile_by_default.matches(view) && can_tile_view(view);
     }
 
-    signal_callback_t on_view_attached = [=] (signal_data_t *data)
-    {
+    signal_callback_t on_view_attached = [=](signal_data_t* data) {
         auto view = get_signaled_view(data);
         if (view->has_data<view_auto_tile_t>() || tile_window_by_default(view))
             attach_view(view);
     };
 
-    signal_callback_t on_view_unmapped = [=] (signal_data_t *data)
-    {
+    signal_callback_t on_view_unmapped = [=](signal_data_t* data) {
         stop_controller(true);
     };
 
-    signal_connection_t on_view_move_to_output = {[=] (signal_data_t *data)
-    {
-        auto ev = static_cast<wf::view_move_to_output_signal*> (data);
+    signal_connection_t on_view_move_to_output = {[=](signal_data_t* data) {
+        auto ev = static_cast<wf::view_move_to_output_signal*>(data);
         auto node = wf::tile::view_node_t::get_node(ev->view);
         if (ev->new_output == this->output && node)
             ev->view->store_data(std::make_unique<wf::view_auto_tile_t>());
     }};
 
     /** Remove the given view from its tiling container */
-    void detach_view(nonstd::observer_ptr<tile::view_node_t> view,
-        bool reinsert = true)
+    void detach_view(
+        nonstd::observer_ptr<tile::view_node_t> view, bool reinsert = true)
     {
         stop_controller(true);
         auto wview = view->view;
@@ -248,8 +246,7 @@ class tile_plugin_t : public wf::plugin_interface_t
             output->workspace->add_view(wview, wf::LAYER_WORKSPACE);
     }
 
-    signal_callback_t on_view_detached = [=] (signal_data_t *data)
-    {
+    signal_callback_t on_view_detached = [=](signal_data_t* data) {
         auto view = get_signaled_view(data);
         auto view_node = wf::tile::view_node_t::get_node(view);
 
@@ -257,14 +254,12 @@ class tile_plugin_t : public wf::plugin_interface_t
             detach_view(view_node, false);
     };
 
-    signal_callback_t on_workarea_changed = [=] (signal_data_t *data)
-    {
+    signal_callback_t on_workarea_changed = [=](signal_data_t* data) {
         update_root_size(output->workspace->get_workarea());
     };
 
-    signal_callback_t on_tile_request = [=] (signal_data_t *data)
-    {
-        auto ev = static_cast<view_tiled_signal*> (data);
+    signal_callback_t on_tile_request = [=](signal_data_t* data) {
+        auto ev = static_cast<view_tiled_signal*>(data);
         if (ev->carried_out || !tile::view_node_t::get_node(ev->view))
             return;
 
@@ -279,9 +274,8 @@ class tile_plugin_t : public wf::plugin_interface_t
         update_root_size(output->workspace->get_workarea());
     }
 
-    signal_callback_t on_fullscreen_request = [=] (signal_data_t *data)
-    {
-        auto ev = static_cast<view_fullscreen_signal*> (data);
+    signal_callback_t on_fullscreen_request = [=](signal_data_t* data) {
+        auto ev = static_cast<view_fullscreen_signal*>(data);
         if (ev->carried_out || !tile::view_node_t::get_node(ev->view))
             return;
 
@@ -289,13 +283,11 @@ class tile_plugin_t : public wf::plugin_interface_t
         set_view_fullscreen(ev->view, ev->state);
     };
 
-    signal_callback_t on_focus_changed = [=] (signal_data_t *data)
-    {
+    signal_callback_t on_focus_changed = [=](signal_data_t* data) {
         auto view = get_signaled_view(data);
-        if (tile::view_node_t::get_node(view) && !view->fullscreen)
-        {
+        if (tile::view_node_t::get_node(view) && !view->fullscreen) {
             auto vp = output->workspace->get_current_workspace();
-            for_each_view(roots[vp.x][vp.y], [&] (wayfire_view view) {
+            for_each_view(roots[vp.x][vp.y], [&](wayfire_view view) {
                 if (view->fullscreen)
                     set_view_fullscreen(view, false);
             });
@@ -305,23 +297,20 @@ class tile_plugin_t : public wf::plugin_interface_t
     void change_view_workspace(wayfire_view view, wf::point_t vp = {-1, -1})
     {
         auto existing_node = wf::tile::view_node_t::get_node(view);
-        if (existing_node)
-        {
+        if (existing_node) {
             detach_view(existing_node);
             attach_view(view, vp);
         }
     }
 
-    signal_callback_t on_view_change_viewport = [=] (signal_data_t *data)
-    {
-        auto ev = (view_change_viewport_signal*) (data);
+    signal_callback_t on_view_change_viewport = [=](signal_data_t* data) {
+        auto ev = (view_change_viewport_signal*)(data);
         if (ev->old_viewport_invalid)
             change_view_workspace(ev->view, ev->to);
     };
 
-    signal_callback_t on_view_minimized = [=] (signal_data_t *data)
-    {
-        auto ev = (view_minimize_request_signal*) data;
+    signal_callback_t on_view_minimized = [=](signal_data_t* data) {
+        auto ev = (view_minimize_request_signal*)data;
         auto existing_node = wf::tile::view_node_t::get_node(ev->view);
 
         if (ev->state && existing_node)
@@ -338,8 +327,8 @@ class tile_plugin_t : public wf::plugin_interface_t
      *
      * @param need_tiled Whether the view needs to be tiled
      */
-    bool conditioned_view_execute(bool need_tiled,
-        std::function<void(wayfire_view)> func)
+    bool conditioned_view_execute(
+        bool need_tiled, std::function<void(wayfire_view)> func)
     {
         auto view = output->get_active_view();
         if (!view)
@@ -348,8 +337,7 @@ class tile_plugin_t : public wf::plugin_interface_t
         if (need_tiled && !tile::view_node_t::get_node(view))
             return false;
 
-        if (output->activate_plugin(grab_interface))
-        {
+        if (output->activate_plugin(grab_interface)) {
             func(view);
             output->deactivate_plugin(grab_interface);
 
@@ -359,19 +347,15 @@ class tile_plugin_t : public wf::plugin_interface_t
         return false;
     }
 
-    wf::key_callback on_toggle_fullscreen = [=] (uint32_t key)
-    {
-        return conditioned_view_execute(true, [=] (wayfire_view view)
-        {
+    wf::key_callback on_toggle_fullscreen = [=](uint32_t key) {
+        return conditioned_view_execute(true, [=](wayfire_view view) {
             stop_controller(true);
             set_view_fullscreen(view, !view->fullscreen);
         });
     };
 
-    wf::key_callback on_toggle_tiled_state = [=] (uint32_t key)
-    {
-        return conditioned_view_execute(false, [=] (wayfire_view view)
-        {
+    wf::key_callback on_toggle_tiled_state = [=](uint32_t key) {
+        return conditioned_view_execute(false, [=](wayfire_view view) {
             auto existing_node = tile::view_node_t::get_node(view);
             if (existing_node) {
                 detach_view(existing_node);
@@ -384,14 +368,12 @@ class tile_plugin_t : public wf::plugin_interface_t
 
     bool focus_adjacent(tile::split_insertion_t direction)
     {
-        return conditioned_view_execute(true, [=] (wayfire_view view)
-        {
+        return conditioned_view_execute(true, [=](wayfire_view view) {
             auto adjacent = tile::find_first_view_in_direction(
                 tile::view_node_t::get_node(view), direction);
 
             bool was_fullscreen = view->fullscreen;
-            if (adjacent)
-            {
+            if (adjacent) {
                 /* This will lower the fullscreen status of the view */
                 output->focus_view(adjacent->view, true);
 
@@ -401,8 +383,7 @@ class tile_plugin_t : public wf::plugin_interface_t
         });
     }
 
-    wf::key_callback on_focus_adjacent = [=] (uint32_t key)
-    {
+    wf::key_callback on_focus_adjacent = [=](uint32_t key) {
         if (key == ((wf::keybinding_t)key_focus_left).get_key())
             return focus_adjacent(tile::INSERT_LEFT);
         if (key == ((wf::keybinding_t)key_focus_right).get_key())
@@ -415,14 +396,14 @@ class tile_plugin_t : public wf::plugin_interface_t
         return false;
     };
 
-    wf::button_callback on_move_view = [=] (uint32_t button, int32_t x, int32_t y)
-    {
-        return start_controller<tile::move_view_controller_t> ({x, y});
+    wf::button_callback on_move_view = [=](uint32_t button, int32_t x,
+                                           int32_t y) {
+        return start_controller<tile::move_view_controller_t>({x, y});
     };
 
-    wf::button_callback on_resize_view = [=] (uint32_t button, int32_t x, int32_t y)
-    {
-        return start_controller<tile::resize_view_controller_t> ({x, y});
+    wf::button_callback on_resize_view = [=](uint32_t button, int32_t x,
+                                             int32_t y) {
+        return start_controller<tile::resize_view_controller_t>({x, y});
     };
 
     void setup_callbacks()
@@ -432,20 +413,18 @@ class tile_plugin_t : public wf::plugin_interface_t
         output->add_key(key_toggle_tile, &on_toggle_tiled_state);
         output->add_key(key_toggle_fullscreen, &on_toggle_fullscreen);
 
-        output->add_key(key_focus_left,  &on_focus_adjacent);
+        output->add_key(key_focus_left, &on_focus_adjacent);
         output->add_key(key_focus_right, &on_focus_adjacent);
         output->add_key(key_focus_above, &on_focus_adjacent);
         output->add_key(key_focus_below, &on_focus_adjacent);
 
-        grab_interface->callbacks.pointer.button =
-            [=] (uint32_t b, uint32_t state)
-            {
-                if (state == WLR_BUTTON_RELEASED)
-                    stop_controller(false);
-            };
+        grab_interface->callbacks.pointer.button = [=](uint32_t b,
+                                                       uint32_t state) {
+            if (state == WLR_BUTTON_RELEASED)
+                stop_controller(false);
+        };
 
-        grab_interface->callbacks.pointer.motion = [=] (int32_t x, int32_t y)
-        {
+        grab_interface->callbacks.pointer.motion = [=](int32_t x, int32_t y) {
             controller->input_motion(get_global_coordinates({x, y}));
         };
     }
@@ -461,19 +440,19 @@ class tile_plugin_t : public wf::plugin_interface_t
         initialize_roots();
         // TODO: check whether this was successful
         output->workspace->set_workspace_implementation(
-            std::make_unique<tile_workspace_implementation_t> (), true);
+            std::make_unique<tile_workspace_implementation_t>(), true);
 
         output->connect_signal("unmap-view", &on_view_unmapped);
         output->connect_signal("layer-attach-view", &on_view_attached);
         output->connect_signal("layer-detach-view", &on_view_detached);
         output->connect_signal("reserved-workarea", &on_workarea_changed);
         output->connect_signal("view-maximized-request", &on_tile_request);
-        output->connect_signal("view-fullscreen-request",
-            &on_fullscreen_request);
+        output->connect_signal("view-fullscreen-request", &on_fullscreen_request);
         output->connect_signal("focus-view", &on_focus_changed);
         output->connect_signal("view-change-viewport", &on_view_change_viewport);
         output->connect_signal("view-minimize-request", &on_view_minimized);
-        wf::get_core().connect_signal("view-move-to-output", &on_view_move_to_output);
+        wf::get_core().connect_signal(
+            "view-move-to-output", &on_view_move_to_output);
         setup_callbacks();
     }
 
@@ -481,8 +460,7 @@ class tile_plugin_t : public wf::plugin_interface_t
     {
         output->workspace->set_workspace_implementation(nullptr, true);
 
-        for (auto& row : tiled_sublayer)
-        {
+        for (auto& row : tiled_sublayer) {
             for (auto& sublayer : row)
                 output->workspace->destroy_sublayer(sublayer);
         }
@@ -498,14 +476,14 @@ class tile_plugin_t : public wf::plugin_interface_t
         output->disconnect_signal("layer-detach-view", &on_view_detached);
         output->disconnect_signal("reserved-workarea", &on_workarea_changed);
         output->disconnect_signal("view-maximized-request", &on_tile_request);
-        output->disconnect_signal("view-fullscreen-request",
-            &on_fullscreen_request);
+        output->disconnect_signal(
+            "view-fullscreen-request", &on_fullscreen_request);
         output->disconnect_signal("focus-view", &on_focus_changed);
-        output->disconnect_signal("view-change-viewport",
-            &on_view_change_viewport);
+        output->disconnect_signal(
+            "view-change-viewport", &on_view_change_viewport);
         output->disconnect_signal("view-minimize-request", &on_view_minimized);
     }
 };
-};
+}; // namespace wf
 
 DECLARE_WAYFIRE_PLUGIN(wf::tile_plugin_t);

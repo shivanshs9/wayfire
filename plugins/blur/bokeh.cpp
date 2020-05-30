@@ -1,7 +1,7 @@
 #include "blur.hpp"
 
 static const char* bokeh_vertex_shader =
-R"(
+    R"(
 #version 100
 
 attribute mediump vec2 position;
@@ -15,7 +15,7 @@ void main() {
 )";
 
 static const char* bokeh_fragment_shader =
-R"(
+    R"(
 #version 100
 precision mediump float;
 
@@ -55,11 +55,7 @@ void main()
 )";
 
 static const wf_blur_default_option_values bokeh_defaults = {
-    .algorithm_name = "bokeh",
-    .offset = "5",
-    .degrade = "1",
-    .iterations = "15"
-};
+    .algorithm_name = "bokeh", .offset = "5", .degrade = "1", .iterations = "15"};
 
 class wf_bokeh_blur : public wf_blur_base
 {
@@ -68,8 +64,8 @@ class wf_bokeh_blur : public wf_blur_base
     {
 
         OpenGL::render_begin();
-        program[0].set_simple(OpenGL::compile_program(bokeh_vertex_shader,
-            bokeh_fragment_shader));
+        program[0].set_simple(
+            OpenGL::compile_program(bokeh_vertex_shader, bokeh_fragment_shader));
         OpenGL::render_end();
     }
 
@@ -79,11 +75,7 @@ class wf_bokeh_blur : public wf_blur_base
         float offset = offset_opt;
 
         static const float vertexData[] = {
-            -1.0f, -1.0f,
-             1.0f, -1.0f,
-             1.0f,  1.0f,
-            -1.0f,  1.0f
-        };
+            -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
         OpenGL::render_begin();
         /* Upload data to shader */
@@ -113,7 +105,7 @@ class wf_bokeh_blur : public wf_blur_base
     }
 };
 
-std::unique_ptr<wf_blur_base> create_bokeh_blur(wf::output_t *output)
+std::unique_ptr<wf_blur_base> create_bokeh_blur(wf::output_t* output)
 {
-    return std::make_unique<wf_bokeh_blur> (output);
+    return std::make_unique<wf_bokeh_blur>(output);
 }

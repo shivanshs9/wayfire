@@ -34,7 +34,7 @@ class wayfire_alpha : public wf::plugin_interface_t
     wf::option_wrapper_t<wf::keybinding_t> modifier{"alpha/modifier"};
     wf::option_wrapper_t<double> min_value{"alpha/min_value"};
 
-    public:
+  public:
     void init() override
     {
         grab_interface->name = "alpha";
@@ -46,13 +46,14 @@ class wayfire_alpha : public wf::plugin_interface_t
 
     void update_alpha(wayfire_view view, float delta)
     {
-        wf::view_2D *transformer;
+        wf::view_2D* transformer;
         float alpha;
 
         if (!view->get_transformer("alpha"))
-            view->add_transformer(std::make_unique<wf::view_2D> (view), "alpha");
+            view->add_transformer(std::make_unique<wf::view_2D>(view), "alpha");
 
-        transformer = dynamic_cast<wf::view_2D*> (view->get_transformer("alpha").get());
+        transformer =
+            dynamic_cast<wf::view_2D*>(view->get_transformer("alpha").get());
         alpha = transformer->alpha;
 
         alpha -= delta * 0.003;
@@ -64,15 +65,13 @@ class wayfire_alpha : public wf::plugin_interface_t
             return view->pop_transformer("alpha");
 
         alpha = std::max(alpha, (float)min_value);
-        if (transformer->alpha != alpha)
-        {
+        if (transformer->alpha != alpha) {
             transformer->alpha = alpha;
             view->damage();
         }
     }
 
-    wf::axis_callback axis_cb = [=] (wlr_event_pointer_axis* ev)
-    {
+    wf::axis_callback axis_cb = [=](wlr_event_pointer_axis* ev) {
         if (!output->activate_plugin(grab_interface))
             return false;
 
@@ -95,28 +94,24 @@ class wayfire_alpha : public wf::plugin_interface_t
         return false;
     };
 
-    wf::config::option_base_t::updated_callback_t min_value_changed = [=] ()
-    {
-        for (auto& view : output->workspace->get_views_in_layer(wf::ALL_LAYERS))
-        {
+    wf::config::option_base_t::updated_callback_t min_value_changed = [=]() {
+        for (auto& view : output->workspace->get_views_in_layer(wf::ALL_LAYERS)) {
             if (!view->get_transformer("alpha"))
                 continue;
 
-            wf::view_2D *transformer = dynamic_cast<wf::view_2D*> (view->get_transformer("alpha").get());
+            wf::view_2D* transformer =
+                dynamic_cast<wf::view_2D*>(view->get_transformer("alpha").get());
 
-            if (transformer->alpha < min_value)
-            {
+            if (transformer->alpha < min_value) {
                 transformer->alpha = min_value;
                 view->damage();
             }
-
         }
     };
 
     void fini() override
     {
-        for (auto& view : output->workspace->get_views_in_layer(wf::ALL_LAYERS))
-        {
+        for (auto& view : output->workspace->get_views_in_layer(wf::ALL_LAYERS)) {
             if (view->get_transformer("alpha"))
                 view->pop_transformer("alpha");
         }

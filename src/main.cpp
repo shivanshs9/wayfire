@@ -44,7 +44,7 @@ static void reload_config(int fd)
     inotify_add_watch(fd, config_file.c_str(), IN_MODIFY);
 }
 
-static int handle_config_updated(int fd, uint32_t mask, void *data)
+static int handle_config_updated(int fd, uint32_t mask, void* data)
 {
     LOGD("Reloading configuration file");
 
@@ -58,20 +58,24 @@ static int handle_config_updated(int fd, uint32_t mask, void *data)
 
 static void print_version()
 {
-     std::cout << WAYFIRE_VERSION << std::endl;
-     exit(0);
+    std::cout << WAYFIRE_VERSION << std::endl;
+    exit(0);
 }
 static void print_help()
 {
-     std::cout << "Wayfire " << WAYFIRE_VERSION                                           << std::endl;
-     std::cout << "Usage: wayfire [OPTION]...\n"                                          << std::endl;
-     std::cout << " -c,  --config            specify config file to use"                  << std::endl;
-     std::cout << " -h,  --help              print this help"                             << std::endl;
-     std::cout << " -d,  --debug             enable debug logging"                        << std::endl;
-     std::cout << " -D,  --damage-debug      enable additional debug for damaged regions" << std::endl;
-     std::cout << " -R,  --damage-rerender   rerender damaged regions"                    << std::endl;
-     std::cout << " -v,  --version           print version and exit"                      << std::endl;
-     exit(0);
+    std::cout << "Wayfire " << WAYFIRE_VERSION << std::endl;
+    std::cout << "Usage: wayfire [OPTION]...\n" << std::endl;
+    std::cout << " -c,  --config            specify config file to use"
+              << std::endl;
+    std::cout << " -h,  --help              print this help" << std::endl;
+    std::cout << " -d,  --debug             enable debug logging" << std::endl;
+    std::cout
+        << " -D,  --damage-debug      enable additional debug for damaged regions"
+        << std::endl;
+    std::cout << " -R,  --damage-rerender   rerender damaged regions"
+              << std::endl;
+    std::cout << " -v,  --version           print version and exit" << std::endl;
+    exit(0);
 }
 
 std::map<EGLint, EGLint> default_attribs = {
@@ -84,16 +88,14 @@ std::map<EGLint, EGLint> default_attribs = {
 std::map<wlr_renderer*, wlr_egl*> egl_for_renderer;
 
 /* Merge the default config and the config we need */
-static std::vector<EGLint> generate_config_attribs(EGLint *renderer_attribs)
+static std::vector<EGLint> generate_config_attribs(EGLint* renderer_attribs)
 {
     std::vector<EGLint> attribs;
 
     /* See what we have in the default config */
-    for (auto i = renderer_attribs; i != NULL && *i != EGL_NONE; i++)
-    {
+    for (auto i = renderer_attribs; i != NULL && *i != EGL_NONE; i++) {
         /* We will override this value later */
-        if (default_attribs.count(*i))
-        {
+        if (default_attribs.count(*i)) {
             ++i;
             continue;
         }
@@ -104,8 +106,7 @@ static std::vector<EGLint> generate_config_attribs(EGLint *renderer_attribs)
     }
 
     /* Then pack all values we want */
-    for (auto &p : default_attribs)
-    {
+    for (auto& p : default_attribs) {
         attribs.push_back(p.first);
         attribs.push_back(p.second);
     }
@@ -114,22 +115,20 @@ static std::vector<EGLint> generate_config_attribs(EGLint *renderer_attribs)
     return attribs;
 }
 
-wlr_renderer *add_egl_depth_renderer(wlr_egl *egl, EGLenum platform,
-    void *remote, EGLint *_r_attr, EGLint visual)
+wlr_renderer* add_egl_depth_renderer(
+    wlr_egl* egl, EGLenum platform, void* remote, EGLint* _r_attr, EGLint visual)
 {
     bool r;
     auto attribs = generate_config_attribs(_r_attr);
     r = wlr_egl_init(egl, platform, remote, attribs.data(), visual);
 
-    if (!r)
-    {
+    if (!r) {
         LOGE("Failed to initialize EGL");
         return NULL;
     }
 
     auto renderer = wlr_gles2_renderer_create(egl);
-    if (!renderer)
-    {
+    if (!renderer) {
         LOGE("Failed to create GLES2 renderer");
         wlr_egl_finish(egl);
         return NULL;
@@ -141,32 +140,29 @@ wlr_renderer *add_egl_depth_renderer(wlr_egl *egl, EGLenum platform,
 
 namespace wf
 {
-    namespace _safe_list_detail
-    {
-        wl_event_loop* event_loop;
-        void idle_cleanup_func(void *data)
-        {
-            auto priv = reinterpret_cast<std::function<void()>*> (data);
-            (*priv)();
-        }
-    }
+namespace _safe_list_detail
+{
+wl_event_loop* event_loop;
+void idle_cleanup_func(void* data)
+{
+    auto priv = reinterpret_cast<std::function<void()>*>(data);
+    (*priv)();
 }
+} // namespace _safe_list_detail
+} // namespace wf
 
 static bool drop_permissions(void)
 {
-    if (getuid() != geteuid() || getgid() != getegid())
-    {
-        //Set the gid and uid in the correct order.
-        if (setgid(getgid()) != 0 || setuid(getuid()) != 0)
-        {
+    if (getuid() != geteuid() || getgid() != getegid()) {
+        // Set the gid and uid in the correct order.
+        if (setgid(getgid()) != 0 || setuid(getuid()) != 0) {
             LOGE("Unable to drop root, refusing to start");
             return false;
         }
     }
-    if (setgid(0) != -1 || setuid(0) != -1)
-    {
+    if (setgid(0) != -1 || setuid(0) != -1) {
         LOGE("Unable to drop root (we shouldn't be able to "
-            "restore it after setuid), refusing to start");
+             "restore it after setuid), refusing to start");
         return false;
     }
     return true;
@@ -174,20 +170,19 @@ static bool drop_permissions(void)
 
 static wf::log::color_mode_t detect_color_mode()
 {
-    return isatty(STDOUT_FILENO) ?
-        wf::log::LOG_COLOR_MODE_ON : wf::log::LOG_COLOR_MODE_OFF;
+    return isatty(STDOUT_FILENO) ? wf::log::LOG_COLOR_MODE_ON :
+                                   wf::log::LOG_COLOR_MODE_OFF;
 }
 
-static void wlr_log_handler(wlr_log_importance level,
-    const char *fmt, va_list args)
+static void wlr_log_handler(
+    wlr_log_importance level, const char* fmt, va_list args)
 {
     const int bufsize = 4 * 1024;
     char buffer[bufsize];
     vsnprintf(buffer, bufsize, fmt, args);
 
     wf::log::log_level_t wlevel;
-    switch (level)
-    {
+    switch (level) {
         case WLR_ERROR:
             wlevel = wf::log::LOG_LEVEL_ERROR;
             break;
@@ -207,8 +202,7 @@ static void wlr_log_handler(wlr_log_importance level,
 static void signal_handler(int signal)
 {
     std::string error;
-    switch (signal)
-    {
+    switch (signal) {
         case SIGSEGV:
             error = "Segmentation fault";
             break;
@@ -227,7 +221,7 @@ static void signal_handler(int signal)
     std::exit(0);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     config_dir = nonull(getenv("XDG_CONFIG_HOME"));
     if (!config_dir.compare("nil"))
@@ -235,21 +229,16 @@ int main(int argc, char *argv[])
     config_file = config_dir + "/wayfire.ini";
 
     wf::log::log_level_t log_level = wf::log::LOG_LEVEL_INFO;
-    struct option opts[] = {
-        { "config",          required_argument, NULL, 'c' },
-        { "debug",           no_argument,       NULL, 'd' },
-        { "damage-debug",    no_argument,       NULL, 'D' },
-        { "damage-rerender", no_argument,       NULL, 'R' },
-        { "help",            no_argument,       NULL, 'h' },
-        { "version",         no_argument,       NULL, 'v' },
-        { 0,                 0,                 NULL,  0  }
-    };
+    struct option opts[] = {{"config", required_argument, NULL, 'c'},
+        {"debug", no_argument, NULL, 'd'},
+        {"damage-debug", no_argument, NULL, 'D'},
+        {"damage-rerender", no_argument, NULL, 'R'},
+        {"help", no_argument, NULL, 'h'}, {"version", no_argument, NULL, 'v'},
+        {0, 0, NULL, 0}};
 
     int c, i;
-    while((c = getopt_long(argc, argv, "c:dDhRv", opts, &i)) != -1)
-    {
-        switch(c)
-        {
+    while ((c = getopt_long(argc, argv, "c:dDhRv", opts, &i)) != -1) {
+        switch (c) {
             case 'c':
                 config_file = optarg;
                 break;
@@ -269,7 +258,9 @@ int main(int argc, char *argv[])
                 print_version();
                 break;
             default:
-                std::cerr << "Unrecognized command line argument " << optarg << "\n" << std::endl;
+                std::cerr << "Unrecognized command line argument " << optarg
+                          << "\n"
+                          << std::endl;
         }
     }
 
@@ -295,15 +286,14 @@ int main(int argc, char *argv[])
     auto& core = wf::get_core_impl();
 
     /** TODO: move this to core_impl constructor */
-    core.display  = display;
-    core.ev_loop  = wl_display_get_event_loop(core.display);
-    core.backend  = wlr_backend_autocreate(core.display, add_egl_depth_renderer);
+    core.display = display;
+    core.ev_loop = wl_display_get_event_loop(core.display);
+    core.backend = wlr_backend_autocreate(core.display, add_egl_depth_renderer);
     core.renderer = wlr_backend_get_renderer(core.backend);
     core.egl = egl_for_renderer[core.renderer];
     assert(core.egl);
 
-    if (!drop_permissions())
-    {
+    if (!drop_permissions()) {
         wl_display_destroy_clients(core.display);
         wl_display_destroy(core.display);
         return EXIT_FAILURE;
@@ -316,13 +306,12 @@ int main(int argc, char *argv[])
     int inotify_fd = inotify_init1(IN_CLOEXEC);
     reload_config(inotify_fd);
 
-    wl_event_loop_add_fd(core.ev_loop, inotify_fd, WL_EVENT_READABLE,
-        handle_config_updated, NULL);
+    wl_event_loop_add_fd(
+        core.ev_loop, inotify_fd, WL_EVENT_READABLE, handle_config_updated, NULL);
     core.init();
 
     auto server_name = wl_display_add_socket_auto(core.display);
-    if (!server_name)
-    {
+    if (!server_name) {
         LOGE("failed to create wayland, socket, exiting");
         return -1;
     }
@@ -330,8 +319,7 @@ int main(int argc, char *argv[])
     setenv("_WAYLAND_DISPLAY", server_name, 1);
 
     core.wayland_display = server_name;
-    if (!wlr_backend_start(core.backend))
-    {
+    if (!wlr_backend_start(core.backend)) {
         LOGE("failed to initialize backend, exiting");
         wlr_backend_destroy(core.backend);
         wl_display_destroy(core.display);

@@ -36,8 +36,8 @@ void main()
     gl_FragColor = wp + (1.0 - wp.a) * c;
 })";
 
-wf_blur_base::wf_blur_base(wf::output_t *output,
-    const wf_blur_default_option_values& defaults)
+wf_blur_base::wf_blur_base(
+    wf::output_t* output, const wf_blur_default_option_values& defaults)
 {
     this->output = output;
     this->algorithm_name = defaults.algorithm_name;
@@ -46,7 +46,9 @@ wf_blur_base::wf_blur_base(wf::output_t *output,
     this->degrade_opt.load_option("blur/" + algorithm_name + "_degrade");
     this->iterations_opt.load_option("blur/" + algorithm_name + "_iterations");
 
-    this->options_changed = [=] () { output->render->damage_whole(); };
+    this->options_changed = [=]() {
+        output->render->damage_whole();
+    };
     this->offset_opt.set_callback(options_changed);
     this->degrade_opt.set_callback(options_changed);
     this->iterations_opt.set_callback(options_changed);
@@ -73,8 +75,8 @@ int wf_blur_base::calculate_blur_radius()
 }
 
 void wf_blur_base::render_iteration(wf::region_t blur_region,
-    wf::framebuffer_base_t& in, wf::framebuffer_base_t& out,
-    int width, int height)
+    wf::framebuffer_base_t& in, wf::framebuffer_base_t& out, int width,
+    int height)
 {
     /* Special case for small regions where we can't really blur, because we
      * simply have too few pixels */
@@ -85,8 +87,7 @@ void wf_blur_base::render_iteration(wf::region_t blur_region,
     out.bind();
 
     GL_CALL(glBindTexture(GL_TEXTURE_2D, in.tex));
-    for (auto& b : blur_region)
-    {
+    for (auto& b : blur_region) {
         out.scissor(wlr_box_from_pixman_box(b));
         GL_CALL(glDrawArrays(GL_TRIANGLE_FAN, 0, 4));
     }
@@ -98,8 +99,7 @@ wlr_box wf_blur_base::copy_region(wf::framebuffer_base_t& result,
     auto subbox = source.framebuffer_box_from_geometry_box(
         wlr_box_from_pixman_box(region.get_extents()));
 
-    auto source_box =
-        source.framebuffer_box_from_geometry_box(source.geometry);
+    auto source_box = source.framebuffer_box_from_geometry_box(source.geometry);
 
     /* Scaling down might cause issues like flickering or some discrepancies
      * between the source and final image.
@@ -114,11 +114,10 @@ wlr_box wf_blur_base::copy_region(wf::framebuffer_base_t& result,
 
     GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, source.fb));
     GL_CALL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, result.fb));
-    GL_CALL(glBlitFramebuffer(
-            subbox.x, source_box.height - subbox.y - subbox.height,
-            subbox.x + subbox.width, source_box.height - subbox.y,
-            0, 0, rounded_width, rounded_height,
-            GL_COLOR_BUFFER_BIT, GL_LINEAR));
+    GL_CALL(
+        glBlitFramebuffer(subbox.x, source_box.height - subbox.y - subbox.height,
+            subbox.x + subbox.width, source_box.height - subbox.y, 0, 0,
+            rounded_width, rounded_height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
     OpenGL::render_end();
 
     return subbox;
@@ -136,8 +135,7 @@ void wf_blur_base::pre_render(wf::texture_t src_tex, wlr_box src_box,
      * to perform minimal rendering required to blur. We start
      * by translating the input damage region */
     wf::region_t blur_damage;
-    for (auto b : damage)
-    {
+    for (auto b : damage) {
         blur_damage |= target_fb.framebuffer_box_from_geometry_box(
             wlr_box_from_pixman_box(b));
     }
@@ -148,22 +146,24 @@ void wf_blur_base::pre_render(wf::texture_t src_tex, wlr_box src_box,
 
     int r = blur_fb0(blur_damage, scaled_width, scaled_height);
 
-    /* Make sure the result is always fb[1], because that's what is used in render() */
+    /* Make sure the result is always fb[1], because that's what is used in
+     * render()
+     */
     if (r != 0)
         std::swap(fb[0], fb[1]);
 
     /* Support iterations = 0 */
-    if (iterations_opt == 0 && algorithm_name != "bokeh")
-    {
-        int rounded_width = std::max(1, damage_box.width + damage_box.width % degrade);
-        int rounded_height = std::max(1, damage_box.height + damage_box.height % degrade);
+    if (iterations_opt == 0 && algorithm_name != "bokeh") {
+        int rounded_width =
+            std::max(1, damage_box.width + damage_box.width % degrade);
+        int rounded_height =
+            std::max(1, damage_box.height + damage_box.height % degrade);
         OpenGL::render_begin();
         fb[1].allocate(scaled_width, scaled_height);
         fb[1].bind();
         GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, fb[0].fb));
-        GL_CALL(glBlitFramebuffer(0, 0, rounded_width, rounded_height,
-                0, 0, scaled_width, scaled_height,
-                GL_COLOR_BUFFER_BIT, GL_LINEAR));
+        GL_CALL(glBlitFramebuffer(0, 0, rounded_width, rounded_height, 0, 0,
+            scaled_width, scaled_height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
         OpenGL::render_end();
         std::swap(fb[0], fb[1]);
     }
@@ -183,12 +183,10 @@ void wf_blur_base::pre_render(wf::texture_t src_tex, wlr_box src_box,
      *
      * local_geometry is damage_box relative to view box */
     wlr_box local_box = damage_box + wf::point_t{-view_box.x, -view_box.y};
-    GL_CALL(glBlitFramebuffer(0, 0, scaled_width, scaled_height,
-            local_box.x,
-            view_box.height - local_box.y - local_box.height,
-            local_box.x + local_box.width,
-            view_box.height - local_box.y,
-            GL_COLOR_BUFFER_BIT, GL_LINEAR));
+    GL_CALL(glBlitFramebuffer(0, 0, scaled_width, scaled_height, local_box.x,
+        view_box.height - local_box.y - local_box.height,
+        local_box.x + local_box.width, view_box.height - local_box.y,
+        GL_COLOR_BUFFER_BIT, GL_LINEAR));
     GL_CALL(glBindTexture(GL_TEXTURE_2D, 0));
     OpenGL::render_end();
 }
@@ -196,7 +194,8 @@ void wf_blur_base::pre_render(wf::texture_t src_tex, wlr_box src_box,
 void wf_blur_base::render(wf::texture_t src_tex, wlr_box src_box,
     wlr_box scissor_box, const wf::framebuffer_t& target_fb)
 {
-    wlr_box fb_geom = target_fb.framebuffer_box_from_geometry_box(target_fb.geometry);
+    wlr_box fb_geom =
+        target_fb.framebuffer_box_from_geometry_box(target_fb.geometry);
     auto view_box = target_fb.framebuffer_box_from_geometry_box(src_box);
 
     OpenGL::render_begin(target_fb);
@@ -204,11 +203,7 @@ void wf_blur_base::render(wf::texture_t src_tex, wlr_box src_box,
 
     /* Use shader and enable vertex and texcoord data */
     static const float vertexData[] = {
-        -1.0f, -1.0f,
-         1.0f, -1.0f,
-         1.0f,  1.0f,
-        -1.0f,  1.0f
-    };
+        -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
     blend_program.attrib_pointer("position", 2, 0, vertexData);
 
@@ -223,7 +218,7 @@ void wf_blur_base::render(wf::texture_t src_tex, wlr_box src_box,
     /* Render it to target_fb */
     target_fb.bind();
     GL_CALL(glViewport(view_box.x, fb_geom.height - view_box.y - view_box.height,
-            view_box.width, view_box.height));
+        view_box.width, view_box.height));
     target_fb.logic_scissor(scissor_box);
 
     GL_CALL(glDrawArrays(GL_TRIANGLE_FAN, 0, 4));
@@ -237,8 +232,8 @@ void wf_blur_base::render(wf::texture_t src_tex, wlr_box src_box,
     OpenGL::render_end();
 }
 
-std::unique_ptr<wf_blur_base> create_blur_from_name(wf::output_t *output,
-    std::string algorithm_name)
+std::unique_ptr<wf_blur_base> create_blur_from_name(
+    wf::output_t* output, std::string algorithm_name)
 {
     if (algorithm_name == "box")
         return create_box_blur(output);
@@ -249,7 +244,7 @@ std::unique_ptr<wf_blur_base> create_blur_from_name(wf::output_t *output,
     if (algorithm_name == "gaussian")
         return create_gaussian_blur(output);
 
-    LOGE ("Unrecognized blur algorithm %s. Using default kawase blur.",
+    LOGE("Unrecognized blur algorithm %s. Using default kawase blur.",
         algorithm_name.c_str());
     return create_kawase_blur(output);
 }

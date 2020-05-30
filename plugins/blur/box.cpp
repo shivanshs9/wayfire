@@ -1,7 +1,7 @@
 #include "blur.hpp"
 
 static const char* box_vertex_shader =
-R"(
+    R"(
 #version 100
 
 attribute mediump vec2 position;
@@ -28,7 +28,7 @@ void main() {
 )";
 
 static const char* box_fragment_shader_horz =
-R"(
+    R"(
 #version 100
 precision mediump float;
 
@@ -51,7 +51,7 @@ void main()
 )";
 
 static const char* box_fragment_shader_vert =
-R"(
+    R"(
 #version 100
 precision mediump float;
 
@@ -73,26 +73,20 @@ void main()
 )";
 
 static const wf_blur_default_option_values box_defaults = {
-    .algorithm_name = "box",
-    .offset = "2",
-    .degrade = "1",
-    .iterations = "2"
-};
+    .algorithm_name = "box", .offset = "2", .degrade = "1", .iterations = "2"};
 
 class wf_box_blur : public wf_blur_base
 {
-    public:
-    void get_id_locations(int i)
-    {
-        }
+  public:
+    void get_id_locations(int i) {}
 
-    wf_box_blur(wf::output_t *output) : wf_blur_base(output, box_defaults)
+    wf_box_blur(wf::output_t* output) : wf_blur_base(output, box_defaults)
     {
         OpenGL::render_begin();
-        program[0].set_simple(OpenGL::compile_program(
-            box_vertex_shader, box_fragment_shader_horz));
-        program[1].set_simple(OpenGL::compile_program(
-            box_vertex_shader, box_fragment_shader_vert));
+        program[0].set_simple(
+            OpenGL::compile_program(box_vertex_shader, box_fragment_shader_horz));
+        program[1].set_simple(
+            OpenGL::compile_program(box_vertex_shader, box_fragment_shader_vert));
         OpenGL::render_end();
     }
 
@@ -100,11 +94,7 @@ class wf_box_blur : public wf_blur_base
     {
         float offset = offset_opt;
         static const float vertexData[] = {
-            -1.0f, -1.0f,
-             1.0f, -1.0f,
-             1.0f,  1.0f,
-            -1.0f,  1.0f
-        };
+            -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
         program[i].use(wf::TEXTURE_TYPE_RGBA);
         program[i].uniform2f("size", width, height);
@@ -155,7 +145,7 @@ class wf_box_blur : public wf_blur_base
     }
 };
 
-std::unique_ptr<wf_blur_base> create_box_blur(wf::output_t *output)
+std::unique_ptr<wf_blur_base> create_box_blur(wf::output_t* output)
 {
-    return std::make_unique<wf_box_blur> (output);
+    return std::make_unique<wf_box_blur>(output);
 }

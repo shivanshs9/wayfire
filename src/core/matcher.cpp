@@ -21,8 +21,7 @@ class wf::view_matcher_t::impl
         try {
             condition = parser.parse(lexer);
             return true;
-        } catch (std::runtime_error& error)
-        {
+        } catch (std::runtime_error& error) {
             LOGE("Failed to parse condition ", value, " from option ", opt_name);
             LOGE("Reason for the failure: ", error.what());
             condition.reset();
@@ -31,12 +30,9 @@ class wf::view_matcher_t::impl
         return false;
     }
 
-    wf::config::option_base_t::updated_callback_t update_condition = [=] ()
-    {
-        if (!try_parse(option->get_value(), option->get_name()))
-        {
-            if (option->get_value() != option->get_default_value())
-            {
+    wf::config::option_base_t::updated_callback_t update_condition = [=]() {
+        if (!try_parse(option->get_value(), option->get_name())) {
+            if (option->get_value() != option->get_default_value()) {
                 try_parse(option->get_default_value(),
                     option->get_name() + "(default)");
             }
@@ -59,8 +55,7 @@ class wf::view_matcher_t::impl
     {
         disconnect_updated_handler();
         this->option = option;
-        if (option)
-        {
+        if (option) {
             connect_updated_handler();
             update_condition();
         }
@@ -78,14 +73,14 @@ wf::view_matcher_t::view_matcher_t()
 }
 
 wf::view_matcher_t::view_matcher_t(
-    std::shared_ptr<wf::config::option_t<std::string>> option)
-    : view_matcher_t()
+    std::shared_ptr<wf::config::option_t<std::string>> option) :
+    view_matcher_t()
 {
     this->priv->set_option(option);
 }
 
-wf::view_matcher_t::view_matcher_t(const std::string& option_name)
-    : view_matcher_t()
+wf::view_matcher_t::view_matcher_t(const std::string& option_name) :
+    view_matcher_t()
 {
     wf::option_wrapper_t<std::string> option{option_name};
     this->set_from_option(option);
@@ -99,8 +94,7 @@ void wf::view_matcher_t::set_from_option(
 
 bool wf::view_matcher_t::matches(wayfire_view view)
 {
-    if (this->priv->condition)
-    {
+    if (this->priv->condition) {
         bool ignored;
         wf::view_access_interface_t access_interface{view};
         return this->priv->condition->evaluate(access_interface, ignored);

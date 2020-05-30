@@ -8,29 +8,30 @@
 
 #include "blur.hpp"
 
-using blur_algorithm_provider = std::function<nonstd::observer_ptr<wf_blur_base>()>;
+using blur_algorithm_provider =
+    std::function<nonstd::observer_ptr<wf_blur_base>()>;
 class wf_blur_transformer : public wf::view_transformer_t
 {
     blur_algorithm_provider provider;
-    wf::output_t *output;
+    wf::output_t* output;
     wayfire_view view;
+
   public:
     wf_blur_transformer(blur_algorithm_provider blur_algorithm_provider,
-        wf::output_t *output, wayfire_view view)
+        wf::output_t* output, wayfire_view view)
     {
         provider = blur_algorithm_provider;
         this->output = output;
         this->view = view;
     }
 
-    wf::pointf_t transform_point(wf::geometry_t view,
-        wf::pointf_t point) override
+    wf::pointf_t transform_point(wf::geometry_t view, wf::pointf_t point) override
     {
         return point;
     }
 
-    wf::pointf_t untransform_point(wf::geometry_t view,
-        wf::pointf_t point) override
+    wf::pointf_t untransform_point(
+        wf::geometry_t view, wf::pointf_t point) override
     {
         return point;
     }
@@ -46,15 +47,17 @@ class wf_blur_transformer : public wf::view_transformer_t
         return region;
     }
 
-    uint32_t get_z_order() override { return wf::TRANSFORMER_BLUR; }
+    uint32_t get_z_order() override
+    {
+        return wf::TRANSFORMER_BLUR;
+    }
 
     /* Render without blending */
     void direct_render(wf::texture_t src_tex, wlr_box src_box,
         const wf::region_t& damage, const wf::framebuffer_t& target_fb)
     {
         OpenGL::render_begin(target_fb);
-        for (auto& rect : damage)
-        {
+        for (auto& rect : damage) {
             target_fb.logic_scissor(wlr_box_from_pixman_box(rect));
             OpenGL::render_texture(src_tex, target_fb, src_box);
         }
@@ -78,12 +81,11 @@ class wf_blur_transformer : public wf::view_transformer_t
          * chain expects this, as we have applied padding to damage in
          * frame_pre_paint for this frame already */
         int padding = std::ceil(provider()->calculate_blur_radius() /
-            output->render->get_target_framebuffer().scale);
+                                output->render->get_target_framebuffer().scale);
         wf::surface_interface_t::set_opaque_shrink_constraint("blur", padding);
 
         wf::region_t bbox_region{src_box};
-        if ((bbox_region ^ full_opaque).empty())
-        {
+        if ((bbox_region ^ full_opaque).empty()) {
             /* In case the whole surface is opaque, we can simply skip blurring */
             direct_render(src_tex, src_box, damage, target_fb);
             return;
@@ -93,7 +95,8 @@ class wf_blur_transformer : public wf::view_transformer_t
         wf::region_t blurred_region = clip_damage ^ opaque_region;
 
         provider()->pre_render(src_tex, src_box, blurred_region, target_fb);
-        wf::view_transformer_t::render_with_damage(src_tex, src_box, blurred_region, target_fb);
+        wf::view_transformer_t::render_with_damage(
+            src_tex, src_box, blurred_region, target_fb);
 
         /* Opaque non-blurred regions can be rendered directly without blending */
         direct_render(src_tex, src_box, opaque_region & clip_damage, target_fb);
@@ -117,9 +120,11 @@ class wayfire_blur : public wf::plugin_interface_t
     const std::string normal_mode = "normal";
     std::string last_mode;
 
-    wf::option_wrapper_t<std::string> method_opt{"blur/method"}, mode_opt{"blur/mode"};
+    wf::option_wrapper_t<std::string> method_opt{"blur/method"},
+        mode_opt{"blur/mode"};
     wf::option_wrapper_t<wf::buttonbinding_t> toggle_button{"blur/toggle"};
-    wf::config::option_base_t::updated_callback_t blur_method_changed, mode_changed;
+    wf::config::option_base_t::updated_callback_t blur_method_changed,
+        mode_changed;
     std::unique_ptr<wf_blur_base> blur_algorithm;
 
     const std::string transformer_name = "blur";
@@ -133,8 +138,9 @@ class wayfire_blur : public wf::plugin_interface_t
         if (view->get_transformer(transformer_name))
             return;
 
-        view->add_transformer(std::make_unique<wf_blur_transformer> (
-                [=] () {return nonstd::make_observer(blur_algorithm.get()); },
+        view->add_transformer(
+            std::make_unique<wf_blur_transformer>(
+                [=]() { return nonstd::make_observer(blur_algorithm.get()); },
                 output, view),
             transformer_name);
     }
@@ -151,13 +157,13 @@ class wayfire_blur : public wf::plugin_interface_t
             pop_transformer(view);
     }
 
-    public:
+  public:
     void init() override
     {
         grab_interface->name = "blur";
         grab_interface->capabilities = 0;
 
-        blur_method_changed = [=] () {
+        blur_method_changed = [=]() {
             blur_algorithm = create_blur_from_name(output, method_opt);
             output->render->damage_whole();
         };
@@ -169,19 +175,16 @@ class wayfire_blur : public wf::plugin_interface_t
          * to each view on the output. If on toggle, this means that the user
          * has to manually click on the views they want to blur */
         last_mode = "none";
-        mode_changed = [=] ()
-        {
+        mode_changed = [=]() {
             if (std::string(mode_opt) == last_mode)
                 return;
 
             if (last_mode == normal_mode)
                 remove_transformers();
 
-            if (std::string(mode_opt) == normal_mode)
-            {
+            if (std::string(mode_opt) == normal_mode) {
                 for (auto& view :
-                    output->workspace->get_views_in_layer(wf::ALL_LAYERS))
-                {
+                    output->workspace->get_views_in_layer(wf::ALL_LAYERS)) {
                     add_transformer(view);
                 }
             }
@@ -192,8 +195,7 @@ class wayfire_blur : public wf::plugin_interface_t
         mode_opt.set_callback(mode_changed);
 
         /* Toggles the blur state of the view the user clicked on */
-        button_toggle = [=] (uint32_t, int, int)
-        {
+        button_toggle = [=](uint32_t, int, int) {
             if (!output->can_activate_plugin(grab_interface))
                 return false;
 
@@ -217,8 +219,7 @@ class wayfire_blur : public wf::plugin_interface_t
          * Additionally, we don't blur windows in the background layers,
          * as they usually are fully opaque, and there is actually nothing
          * behind them which can be blurred. */
-        view_attached = [=] (wf::signal_data_t *data)
-        {
+        view_attached = [=](wf::signal_data_t* data) {
             auto view = get_signaled_view(data);
             /* View was just created -> we don't know its layer yet */
             if (!view->is_mapped())
@@ -235,8 +236,7 @@ class wayfire_blur : public wf::plugin_interface_t
         /* If a view is detached, we remove its blur transformer.
          * If it is just moved to another output, the blur plugin
          * on the other output will add its own transformer there */
-        view_detached = [=] (wf::signal_data_t *data)
-        {
+        view_detached = [=](wf::signal_data_t* data) {
             auto view = get_signaled_view(data);
             pop_transformer(view);
         };
@@ -249,24 +249,20 @@ class wayfire_blur : public wf::plugin_interface_t
          * This is needed, because when blurring, the pixels that changed
          * affect a larger area than the really damaged region, e.g the region
          * that comes from client damage */
-        frame_pre_paint = [=] ()
-        {
+        frame_pre_paint = [=]() {
             auto damage = output->render->get_scheduled_damage();
             const auto& fb = output->render->get_target_framebuffer();
 
-            int padding = std::ceil(blur_algorithm->calculate_blur_radius() / fb.scale);
-            wf::surface_interface_t::set_opaque_shrink_constraint("blur",
-                padding);
+            int padding =
+                std::ceil(blur_algorithm->calculate_blur_radius() / fb.scale);
+            wf::surface_interface_t::set_opaque_shrink_constraint(
+                "blur", padding);
 
             wf::region_t padded;
-            for (const auto& rect : damage)
-            {
-                padded |= wlr_box{
-                    (rect.x1 - padding),
-                    (rect.y1 - padding),
+            for (const auto& rect : damage) {
+                padded |= wlr_box{(rect.x1 - padding), (rect.y1 - padding),
                     (rect.x2 - rect.x1) + 2 * padding,
-                    (rect.y2 - rect.y1) + 2 * padding
-                };
+                    (rect.y2 - rect.y1) + 2 * padding};
             }
 
             output->render->damage(padded);
@@ -279,8 +275,7 @@ class wayfire_blur : public wf::plugin_interface_t
          * damage will be used to render the scene as normal. Then
          * workspace_stream_post is called so we can copy the padded
          * pixels back. */
-        workspace_stream_pre = [=] (wf::signal_data_t *data)
-        {
+        workspace_stream_pre = [=](wf::signal_data_t* data) {
             auto& damage = static_cast<wf::stream_signal_t*>(data)->raw_damage;
             const auto& ws = static_cast<wf::stream_signal_t*>(data)->ws;
             const auto& target_fb = static_cast<wf::stream_signal_t*>(data)->fb;
@@ -292,14 +287,10 @@ class wayfire_blur : public wf::plugin_interface_t
                 blur_algorithm->calculate_blur_radius() / target_fb.scale);
 
             wf::region_t expanded_damage;
-            for (const auto& rect : damage)
-            {
-                expanded_damage |= {
-                    rect.x1 - padding,
-                    rect.y1 - padding,
+            for (const auto& rect : damage) {
+                expanded_damage |= {rect.x1 - padding, rect.y1 - padding,
                     (rect.x2 - rect.x1) + 2 * padding,
-                    (rect.y2 - rect.y1) + 2 * padding
-                };
+                    (rect.y2 - rect.y1) + 2 * padding};
             }
 
             /* Keep rects on screen */
@@ -316,8 +307,8 @@ class wayfire_blur : public wf::plugin_interface_t
 
             OpenGL::render_begin(target_fb);
             /* Initialize a place to store padded region pixels. */
-            saved_pixels.allocate(target_fb.viewport_width,
-                target_fb.viewport_height);
+            saved_pixels.allocate(
+                target_fb.viewport_width, target_fb.viewport_height);
 
             /* Setup framebuffer I/O. target_fb contains the pixels
              * from last frame at this point. We are writing them
@@ -326,17 +317,15 @@ class wayfire_blur : public wf::plugin_interface_t
             GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, target_fb.fb));
 
             /* Copy pixels in padded_region from target_fb to saved_pixels. */
-            for (const auto& rect : padded_region)
-            {
+            for (const auto& rect : padded_region) {
                 pixman_box32_t box = pixman_box_from_wlr_box(
                     target_fb.framebuffer_box_from_geometry_box(
                         wlr_box_from_pixman_box(rect)));
 
-                GL_CALL(glBlitFramebuffer(
-                        box.x1, target_fb.viewport_height - box.y2,
-                        box.x2, target_fb.viewport_height - box.y1,
-                        box.x1, box.y1, box.x2, box.y2,
-                        GL_COLOR_BUFFER_BIT, GL_LINEAR));
+                GL_CALL(
+                    glBlitFramebuffer(box.x1, target_fb.viewport_height - box.y2,
+                        box.x2, target_fb.viewport_height - box.y1, box.x1,
+                        box.y1, box.x2, box.y2, GL_COLOR_BUFFER_BIT, GL_LINEAR));
             }
 
             /* This effectively makes damage the same as expanded_damage. */
@@ -345,14 +334,14 @@ class wayfire_blur : public wf::plugin_interface_t
             OpenGL::render_end();
         };
 
-        output->render->connect_signal("workspace-stream-pre", &workspace_stream_pre);
+        output->render->connect_signal(
+            "workspace-stream-pre", &workspace_stream_pre);
 
         /* workspace_stream_post is called after rendering each frame
          * when rendering a workspace. It gives us a chance to copy
          * the pixels back to the framebuffer that we saved in
          * workspace_stream_pre. */
-        workspace_stream_post = [=] (wf::signal_data_t *data)
-        {
+        workspace_stream_post = [=](wf::signal_data_t* data) {
             const auto& target_fb = static_cast<wf::stream_signal_t*>(data)->fb;
             OpenGL::render_begin(target_fb);
             /* Setup framebuffer I/O. target_fb contains the frame
@@ -362,16 +351,15 @@ class wayfire_blur : public wf::plugin_interface_t
             GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, saved_pixels.fb));
 
             /* Copy pixels back from saved_pixels to target_fb. */
-            for (const auto& rect : padded_region)
-            {
+            for (const auto& rect : padded_region) {
                 pixman_box32_t box = pixman_box_from_wlr_box(
                     target_fb.framebuffer_box_from_geometry_box(
                         wlr_box_from_pixman_box(rect)));
 
-                GL_CALL(glBlitFramebuffer(box.x1, box.y1, box.x2, box.y2,
-                        box.x1, target_fb.viewport_height - box.y2,
-                        box.x2, target_fb.viewport_height - box.y1,
-                        GL_COLOR_BUFFER_BIT, GL_LINEAR));
+                GL_CALL(glBlitFramebuffer(box.x1, box.y1, box.x2, box.y2, box.x1,
+                    target_fb.viewport_height - box.y2, box.x2,
+                    target_fb.viewport_height - box.y1, GL_COLOR_BUFFER_BIT,
+                    GL_LINEAR));
             }
 
             /* Reset stuff */
@@ -380,7 +368,8 @@ class wayfire_blur : public wf::plugin_interface_t
             OpenGL::render_end();
         };
 
-        output->render->connect_signal("workspace-stream-post", &workspace_stream_post);
+        output->render->connect_signal(
+            "workspace-stream-post", &workspace_stream_post);
     }
 
     void fini() override
@@ -392,8 +381,10 @@ class wayfire_blur : public wf::plugin_interface_t
         output->disconnect_signal("map-view", &view_attached);
         output->disconnect_signal("detach-view", &view_detached);
         output->render->rem_effect(&frame_pre_paint);
-        output->render->disconnect_signal("workspace-stream-pre", &workspace_stream_pre);
-        output->render->disconnect_signal("workspace-stream-post", &workspace_stream_post);
+        output->render->disconnect_signal(
+            "workspace-stream-pre", &workspace_stream_pre);
+        output->render->disconnect_signal(
+            "workspace-stream-post", &workspace_stream_post);
 
         /* Call blur algorithm destructor */
         blur_algorithm = nullptr;

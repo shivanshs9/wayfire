@@ -4,7 +4,7 @@
 #include <wayfire/render-manager.hpp>
 
 static const char* vertex_shader =
-R"(
+    R"(
 #version 100
 
 attribute mediump vec2 position;
@@ -20,7 +20,7 @@ void main() {
 )";
 
 static const char* fragment_shader =
-R"(
+    R"(
 #version 100
 
 varying highp vec2 uvpos;
@@ -49,21 +49,18 @@ class wayfire_invert_screen : public wf::plugin_interface_t
         grab_interface->name = "invert";
         grab_interface->capabilities = 0;
 
-        hook = [=] (const wf::framebuffer_base_t& source,
-            const wf::framebuffer_base_t& destination) {
+        hook = [=](const wf::framebuffer_base_t& source,
+                   const wf::framebuffer_base_t& destination) {
             render(source, destination);
         };
 
-
-        toggle_cb = [=] (wf::activator_source_t, uint32_t) {
+        toggle_cb = [=](wf::activator_source_t, uint32_t) {
             if (!output->can_activate_plugin(grab_interface))
                 return false;
 
-            if (active)
-            {
+            if (active) {
                 output->render->rem_post(&hook);
-            } else
-            {
+            } else {
                 output->render->add_post(&hook);
             }
 
@@ -84,18 +81,10 @@ class wayfire_invert_screen : public wf::plugin_interface_t
         const wf::framebuffer_base_t& destination)
     {
         static const float vertexData[] = {
-            -1.0f, -1.0f,
-            1.0f, -1.0f,
-            1.0f,  1.0f,
-            -1.0f,  1.0f
-        };
+            -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
         static const float coordData[] = {
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f
-        };
+            0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f};
 
         OpenGL::render_begin(destination);
 
@@ -107,7 +96,7 @@ class wayfire_invert_screen : public wf::plugin_interface_t
         program.attrib_pointer("uvPosition", 2, 0, coordData);
 
         GL_CALL(glDisable(GL_BLEND));
-        GL_CALL(glDrawArrays (GL_TRIANGLE_FAN, 0, 4));
+        GL_CALL(glDrawArrays(GL_TRIANGLE_FAN, 0, 4));
         GL_CALL(glEnable(GL_BLEND));
         GL_CALL(glBindTexture(GL_TEXTURE_2D, 0));
 

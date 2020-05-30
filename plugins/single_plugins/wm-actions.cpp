@@ -15,9 +15,8 @@ class wayfire_wm_actions_t : public wf::plugin_interface_t
         return output->get_active_view();
     }
 
-    wf::activator_callback on_toggle_above =
-        [=](wf::activator_source_t source, uint32_t) -> bool
-    {
+    wf::activator_callback on_toggle_above = [=](wf::activator_source_t source,
+                                                 uint32_t) -> bool {
         if (!output->can_activate_plugin(this->grab_interface))
             return false;
 
@@ -31,8 +30,8 @@ class wayfire_wm_actions_t : public wf::plugin_interface_t
             always_on_top_views.begin(), always_on_top_views.end(), view);
 
         if (it != always_on_top_views.end()) {
-            output->workspace->add_view(view,
-                (wf::layer_t)output->workspace->get_view_layer(view));
+            output->workspace->add_view(
+                view, (wf::layer_t)output->workspace->get_view_layer(view));
         } else {
             output->workspace->add_view_to_sublayer(view, always_above);
         }
@@ -40,7 +39,8 @@ class wayfire_wm_actions_t : public wf::plugin_interface_t
         return true;
     };
 
-    wf::option_wrapper_t<wf::activatorbinding_t> toggle_above{"wm-actions/toggle_always_on_top"};
+    wf::option_wrapper_t<wf::activatorbinding_t> toggle_above{
+        "wm-actions/toggle_always_on_top"};
 
   public:
     void init() override

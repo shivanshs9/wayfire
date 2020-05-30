@@ -23,8 +23,7 @@ wf_cube_background_cubemap::~wf_cube_background_cubemap()
 void wf_cube_background_cubemap::create_program()
 {
     OpenGL::render_begin();
-    program.set_simple(
-        OpenGL::compile_program(cubemap_vertex, cubemap_fragment));
+    program.set_simple(OpenGL::compile_program(cubemap_vertex, cubemap_fragment));
     OpenGL::render_end();
 }
 
@@ -36,15 +35,14 @@ void wf_cube_background_cubemap::reload_texture()
     last_background_image = background_image;
 
     OpenGL::render_begin();
-    if (tex == (uint32_t)-1)
-    {
+    if (tex == (uint32_t)-1) {
         GL_CALL(glGenTextures(1, &tex));
     }
 
     GL_CALL(glBindTexture(GL_TEXTURE_CUBE_MAP, tex));
-    for (int i = 0; i < 6; i++)
-    {
-        if (!image_io::load_from_file(last_background_image, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i))
+    for (int i = 0; i < 6; i++) {
+        if (!image_io::load_from_file(
+                last_background_image, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i))
         {
             LOGE("Failed to load cubemap background image from \"%s\".",
                 last_background_image.c_str());
@@ -55,13 +53,17 @@ void wf_cube_background_cubemap::reload_texture()
         }
     }
 
-    if (tex != (uint32_t)-1)
-    {
-        GL_CALL(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        GL_CALL(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        GL_CALL(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        GL_CALL(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        GL_CALL(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE));
+    if (tex != (uint32_t)-1) {
+        GL_CALL(glTexParameteri(
+            GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+        GL_CALL(glTexParameteri(
+            GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+        GL_CALL(glTexParameteri(
+            GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+        GL_CALL(glTexParameteri(
+            GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+        GL_CALL(glTexParameteri(
+            GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE));
     }
 
     GL_CALL(glBindTexture(GL_TEXTURE_CUBE_MAP, 0));
@@ -70,14 +72,13 @@ void wf_cube_background_cubemap::reload_texture()
 
 #include "cubemap-vertex-data.hpp"
 
-void wf_cube_background_cubemap::render_frame(const wf::framebuffer_t& fb,
-    wf_cube_animation_attribs& attribs)
+void wf_cube_background_cubemap::render_frame(
+    const wf::framebuffer_t& fb, wf_cube_animation_attribs& attribs)
 {
     reload_texture();
 
     OpenGL::render_begin(fb);
-    if (tex == (uint32_t)-1)
-    {
+    if (tex == (uint32_t)-1) {
         GL_CALL(glClearColor(TEX_ERROR_FLAG_COLOR));
         GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
         OpenGL::render_end();
@@ -90,14 +91,13 @@ void wf_cube_background_cubemap::render_frame(const wf::framebuffer_t& fb,
     program.attrib_pointer("position", 3, 0, skyboxVertices);
 
     auto model = glm::rotate(glm::mat4(1.0),
-        float(attribs.cube_animation.rotation * 0.7f),
-        glm::vec3(0, 1, 0));
+        float(attribs.cube_animation.rotation * 0.7f), glm::vec3(0, 1, 0));
 
-    glm::vec3 look_at{0.,
-        (double) -attribs.cube_animation.offset_y,
-        (double) attribs.cube_animation.offset_z};
+    glm::vec3 look_at{0., (double)-attribs.cube_animation.offset_y,
+        (double)attribs.cube_animation.offset_z};
 
-    auto view = glm::lookAt(glm::vec3(0., 0., 0.), look_at, glm::vec3(0., 1., 0.));
+    auto view =
+        glm::lookAt(glm::vec3(0., 0., 0.), look_at, glm::vec3(0., 1., 0.));
     auto vp = fb.transform * attribs.projection * view;
 
     model = vp * model;

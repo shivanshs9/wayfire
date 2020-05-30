@@ -14,7 +14,8 @@
 
 extern "C"
 {
-    /* wlr uses some c99 extensions, we "disable" the static keyword to workaround */
+    /* wlr uses some c99 extensions, we "disable" the static keyword to workaround
+     */
 #define static
 #include <wlr/render/wlr_renderer.h>
 #undef static
@@ -33,18 +34,18 @@ struct output_damage_t
     wf::wl_listener_wrapper on_damage_destroy;
 
     wf::region_t frame_damage;
-    wlr_output *output;
-    wlr_output_damage *damage_manager;
-    output_t *wo;
+    wlr_output* output;
+    wlr_output_damage* damage_manager;
+    output_t* wo;
 
-    output_damage_t(output_t *output)
+    output_damage_t(output_t* output)
     {
         this->output = output->handle;
         this->wo = output;
 
         damage_manager = wlr_output_damage_create(this->output);
 
-        on_damage_destroy.set_callback([=] (void *) { damage_manager = nullptr; });
+        on_damage_destroy.set_callback([=](void*) { damage_manager = nullptr; });
         on_damage_destroy.connect(&damage_manager->events.destroy);
     }
 
@@ -84,10 +85,11 @@ struct output_damage_t
             return false;
 
         wf::region_t tmp_region;
-        auto r = wlr_output_damage_attach_render(damage_manager, &needs_swap,
-            tmp_region.to_pixman());
+        auto r = wlr_output_damage_attach_render(
+            damage_manager, &needs_swap, tmp_region.to_pixman());
 
-        if (!r) return false;
+        if (!r)
+            return false;
 
         frame_damage |= tmp_region;
         if (runtime_config.no_damage_track)
@@ -125,11 +127,11 @@ struct output_damage_t
         /* Make sure that the damage is in buffer coordinates */
         wl_output_transform transform =
             wlr_output_transform_invert(output->transform);
-        wlr_region_transform(swap_damage.to_pixman(), swap_damage.to_pixman(),
-            transform, w, h);
+        wlr_region_transform(
+            swap_damage.to_pixman(), swap_damage.to_pixman(), transform, w, h);
 
-        wlr_output_set_damage(output,
-            const_cast<wf::region_t&> (swap_damage).to_pixman());
+        wlr_output_set_damage(
+            output, const_cast<wf::region_t&>(swap_damage).to_pixman());
         wlr_output_commit(output);
         frame_damage.clear();
     }
@@ -204,7 +206,7 @@ struct output_damage_t
     {
         damage_whole();
         if (!idle_damage.is_connected())
-            idle_damage.run_once([&] () { damage_whole(); });
+            idle_damage.run_once([&]() { damage_whole(); });
     }
 };
 
@@ -221,7 +223,7 @@ struct effect_hook_manager_t
         effects[type].push_back(hook);
     }
 
-    void rem_effect(effect_hook_t *hook)
+    void rem_effect(effect_hook_t* hook)
     {
         for (int i = 0; i < OUTPUT_EFFECT_TOTAL; i++)
             effects[i].remove_all(hook);
@@ -229,8 +231,7 @@ struct effect_hook_manager_t
 
     void run_effects(output_effect_type_t type)
     {
-        effects[type].for_each([] (auto effect)
-            { (*effect)(); });
+        effects[type].for_each([](auto effect) { (*effect)(); });
     }
 };
 
@@ -245,9 +246,9 @@ struct postprocessing_manager_t
     /* Buffer to which other operations render to */
     static constexpr uint32_t default_out_buffer = 0;
 
-    output_t *output;
+    output_t* output;
     uint32_t output_width, output_height;
-    postprocessing_manager_t(output_t *output)
+    postprocessing_manager_t(output_t* output)
     {
         this->output = output;
     }
@@ -271,7 +272,7 @@ struct postprocessing_manager_t
         output->render->damage_whole_idle();
     }
 
-    void rem_post(post_hook_t *hook)
+    void rem_post(post_hook_t* hook)
     {
         post_effects.remove_all(hook);
         output->render->damage_whole_idle();
@@ -291,20 +292,19 @@ struct postprocessing_manager_t
         int last_buffer_idx = default_out_buffer;
         int next_buffer_idx = 1;
 
-        post_effects.for_each([&] (auto post) -> void
-        {
-            /* The last postprocessing hook renders directly to the screen, others to
-             * the currently free buffer */
+        post_effects.for_each([&](auto post) -> void {
+            /* The last postprocessing hook renders directly to the screen, others
+             * to the currently free buffer */
             wf::framebuffer_base_t& next_buffer =
                 (post == post_effects.back() ? default_framebuffer :
-                 post_buffers[next_buffer_idx]);
+                                               post_buffers[next_buffer_idx]);
 
             OpenGL::render_begin();
             /* Make sure we have the correct resolution */
             next_buffer.allocate(output_width, output_height);
             OpenGL::render_end();
 
-            (*post) (post_buffers[last_buffer_idx], next_buffer);
+            (*post)(post_buffers[last_buffer_idx], next_buffer);
 
             last_buffer_idx = next_buffer_idx;
             next_buffer_idx ^= 0b11; // alternate 1 and 2
@@ -316,12 +316,10 @@ struct postprocessing_manager_t
      */
     void get_default_target(uint32_t& fb, uint32_t& tex)
     {
-        if (post_effects.size())
-        {
+        if (post_effects.size()) {
             fb = post_buffers[default_out_buffer].fb;
             tex = post_buffers[default_out_buffer].tex;
-        } else
-        {
+        } else {
             fb = 0;
             tex = 0;
         }
@@ -336,7 +334,7 @@ class wf::render_manager::impl
     wf::wl_timer repaint_timer;
     int64_t refresh_nsec;
 
-    output_t *output;
+    output_t* output;
     wf::region_t swap_damage;
     std::unique_ptr<output_damage_t> output_damage;
     std::unique_ptr<effect_hook_manager_t> effects;
@@ -345,21 +343,20 @@ class wf::render_manager::impl
     wf::option_wrapper_t<wf::color_t> background_color_opt;
     wf::option_wrapper_t<int> max_render_time_opt;
 
-    impl(output_t *o)
-        : output(o)
+    impl(output_t* o) : output(o)
     {
-        output_damage = std::make_unique<output_damage_t> (o);
-        effects = std::make_unique<effect_hook_manager_t> ();
+        output_damage = std::make_unique<output_damage_t>(o);
+        effects = std::make_unique<effect_hook_manager_t>();
         postprocessing = std::make_unique<postprocessing_manager_t>(o);
 
-        on_present.set_callback([&] (void *data) {
-            auto ev = static_cast<wlr_output_event_present*> (data);
+        on_present.set_callback([&](void* data) {
+            auto ev = static_cast<wlr_output_event_present*>(data);
             this->refresh_nsec = ev->refresh;
         });
         on_present.connect(&output->handle->events.present);
 
         max_render_time_opt.load_option("core/max_render_time");
-        on_frame.set_callback([&] (void*) {
+        on_frame.set_callback([&](void*) {
             /*
              * Leave a bit of time for clients to render, see
              * https://github.com/swaywm/sway/pull/4588
@@ -369,14 +366,11 @@ class wf::render_manager::impl
                 total = 0;
 
             // We cannot really wait less than 1ms, render right away in that case
-            if (total < 1)
-            {
+            if (total < 1) {
                 paint();
-            }
-            else
-            {
+            } else {
                 output->handle->frame_pending = true;
-                repaint_timer.set_timeout(total, [=] () {
+                repaint_timer.set_timeout(total, [=]() {
                     output->handle->frame_pending = false;
                     paint();
                 });
@@ -387,9 +381,8 @@ class wf::render_manager::impl
         init_default_streams();
 
         background_color_opt.load_option("core/background_color");
-        background_color_opt.set_callback([=] () {
-            output_damage->damage_whole_idle();
-        });
+        background_color_opt.set_callback(
+            [=]() { output_damage->damage_whole_idle(); });
 
         output_damage->schedule_repaint();
     }
@@ -402,11 +395,9 @@ class wf::render_manager::impl
     {
         auto wsize = output->workspace->get_workspace_grid_size();
         default_streams.resize(wsize.width);
-        for (int i = 0; i < wsize.width; i++)
-        {
+        for (int i = 0; i < wsize.width; i++) {
             default_streams[i].resize(wsize.height);
-            for (int j = 0; j < wsize.height; j++)
-            {
+            for (int j = 0; j < wsize.height; j++) {
                 default_streams[i][j].buffer.fb = 0;
                 default_streams[i][j].buffer.tex = 0;
                 default_streams[i][j].ws = {i, j};
@@ -428,8 +419,7 @@ class wf::render_manager::impl
         if (constant_redraw_counter > 1) /* no change, exit */
             return;
 
-        if (constant_redraw_counter < 0)
-        {
+        if (constant_redraw_counter < 0) {
             LOGE("constant_redraw_counter got below 0!");
             constant_redraw_counter = 0;
             return;
@@ -442,8 +432,7 @@ class wf::render_manager::impl
     void add_inhibit(bool add)
     {
         output_inhibit_counter += add ? 1 : -1;
-        if (output_inhibit_counter == 0)
-        {
+        if (output_inhibit_counter == 0) {
             output_damage->damage_whole_idle();
             output->emit_signal("start-rendering", nullptr);
         }
@@ -485,28 +474,26 @@ class wf::render_manager::impl
      */
     void default_renderer()
     {
-        if (runtime_config.damage_debug)
-        {
+        if (runtime_config.damage_debug) {
             /* Clear the screen to yellow, so that the repainted parts are
              * visible */
             swap_damage |= output_damage->get_wlr_damage_box();
 
-            OpenGL::render_begin(output->handle->width, output->handle->height, 0);
+            OpenGL::render_begin(
+                output->handle->width, output->handle->height, 0);
             OpenGL::clear({1, 1, 0, 1});
             OpenGL::render_end();
         }
 
         auto cws = output->workspace->get_current_workspace();
         auto target_stream = &default_streams[cws.x][cws.y];
-        if (current_ws_stream.get() != target_stream)
-        {
+        if (current_ws_stream.get() != target_stream) {
             if (current_ws_stream)
                 workspace_stream_stop(*current_ws_stream);
 
             current_ws_stream = nonstd::make_observer(target_stream);
             workspace_stream_start(*current_ws_stream);
-        } else
-        {
+        } else {
             workspace_stream_update(*current_ws_stream);
         }
     }
@@ -526,13 +513,11 @@ class wf::render_manager::impl
      */
     void render_output()
     {
-        if (renderer)
-        {
+        if (renderer) {
             renderer(get_target_framebuffer());
             /* TODO: let custom renderers specify what they want to repaint... */
             swap_damage |= output_damage->get_wlr_damage_box();
-        } else
-        {
+        } else {
             swap_damage =
                 output_damage->get_scheduled_damage() * output->handle->scale;
             swap_damage &= output_damage->get_wlr_damage_box();
@@ -554,14 +539,12 @@ class wf::render_manager::impl
         effects->run_effects(OUTPUT_EFFECT_PRE);
 
         bool needs_swap;
-        if (!output_damage->make_current(needs_swap))
-        {
+        if (!output_damage->make_current(needs_swap)) {
             wlr_output_rollback(output->handle);
             return;
         }
 
-        if (!needs_swap && !constant_redraw_counter)
-        {
+        if (!needs_swap && !constant_redraw_counter) {
             /* Optimization: the output doesn't need a swap (so isn't damaged),
              * and no plugin wants custom redrawing - we can just skip the whole
              * repaint */
@@ -583,14 +566,15 @@ class wf::render_manager::impl
             swap_damage |= output_damage->get_wlr_damage_box();
 
         OpenGL::render_begin(get_target_framebuffer());
-        wlr_output_render_software_cursors(output->handle, swap_damage.to_pixman());
+        wlr_output_render_software_cursors(
+            output->handle, swap_damage.to_pixman());
         OpenGL::render_end();
 
         /* Part 4: postprocessing effects */
         postprocessing->run_post_effects();
-        if (output_inhibit_counter)
-        {
-            OpenGL::render_begin(output->handle->width, output->handle->height, 0);
+        if (output_inhibit_counter) {
+            OpenGL::render_begin(
+                output->handle->width, output->handle->height, 0);
             OpenGL::clear({0, 0, 0, 1});
             OpenGL::render_end();
         }
@@ -622,32 +606,28 @@ class wf::render_manager::impl
     {
         /* TODO: do this only if the view isn't fully occluded by another */
         std::vector<wayfire_view> visible_views;
-        if (renderer)
-        {
-            visible_views = output->workspace->get_views_in_layer(
-                wf::VISIBLE_LAYERS);
-        } else
-        {
+        if (renderer) {
+            visible_views =
+                output->workspace->get_views_in_layer(wf::VISIBLE_LAYERS);
+        } else {
             visible_views = output->workspace->get_views_on_workspace(
-                output->workspace->get_current_workspace(),
-                wf::MIDDLE_LAYERS, false);
+                output->workspace->get_current_workspace(), wf::MIDDLE_LAYERS,
+                false);
 
             // send to all panels/backgrounds/etc
             auto additional_views = output->workspace->get_views_in_layer(
                 wf::BELOW_LAYERS | wf::ABOVE_LAYERS);
 
-            visible_views.insert(visible_views.end(),
-                additional_views.begin(), additional_views.end());
+            visible_views.insert(visible_views.end(), additional_views.begin(),
+                additional_views.end());
         }
 
         timespec repaint_ended;
         clockid_t presentation_clock =
             wlr_backend_get_presentation_clock(wf::get_core_impl().backend);
         clock_gettime(presentation_clock, &repaint_ended);
-        for (auto& v : visible_views)
-        {
-            for (auto& view : v->enumerate_views())
-            {
+        for (auto& v : visible_views) {
+            for (auto& view : v->enumerate_views()) {
                 if (!view->is_mapped())
                     continue;
 
@@ -674,8 +654,8 @@ class wf::render_manager::impl
      */
     struct damaged_surface_t
     {
-        wf::surface_interface_t *surface = nullptr;
-        wf::view_interface_t *view = nullptr;
+        wf::surface_interface_t* surface = nullptr;
+        wf::view_interface_t* view = nullptr;
 
         /* For views, this is the delta in framebuffer coordinates.
          * For surfaces, this is the coordinates of the surface inside the
@@ -712,8 +692,7 @@ class wf::render_manager::impl
 
         auto bbox = view->get_bounding_box() + view_delta;
         ds->damage = (repaint.ws_damage & bbox) + -view_delta;
-        if (!ds->damage.empty())
-        {
+        if (!ds->damage.empty()) {
             ds->pos = -view_delta;
             ds->view = view.get();
             repaint.ws_damage ^=
@@ -727,7 +706,7 @@ class wf::render_manager::impl
      * push it in the repaint list if needed.
      */
     void schedule_surface(workspace_stream_repaint_t& repaint,
-        wf::surface_interface_t *surface, wf::point_t pos)
+        wf::surface_interface_t* surface, wf::point_t pos)
     {
         if (!surface->is_mapped())
             return;
@@ -736,16 +715,13 @@ class wf::render_manager::impl
             return;
 
         auto ds = damaged_surface(new damaged_surface_t);
-        wlr_box obox = {
-            .x = pos.x,
+        wlr_box obox = {.x = pos.x,
             .y = pos.y,
             .width = surface->get_size().width,
-            .height = surface->get_size().height
-        };
+            .height = surface->get_size().height};
 
         ds->damage = repaint.ws_damage & obox;
-        if (!ds->damage.empty())
-        {
+        if (!ds->damage.empty()) {
             ds->pos = pos;
             ds->surface = surface;
 
@@ -791,17 +767,15 @@ class wf::render_manager::impl
      * Iterate all visible surfaces on the workspace, and check whether
      * they need repaint.
      */
-    void check_schedule_surfaces(workspace_stream_repaint_t& repaint,
-        workspace_stream_t& stream)
+    void check_schedule_surfaces(
+        workspace_stream_repaint_t& repaint, workspace_stream_t& stream)
     {
-        auto views = output->workspace->get_views_on_workspace(stream.ws,
-            wf::VISIBLE_LAYERS, false);
+        auto views = output->workspace->get_views_on_workspace(
+            stream.ws, wf::VISIBLE_LAYERS, false);
 
         schedule_drag_icon(repaint);
-        for (auto& v : views)
-        {
-            for (auto& view : v->enumerate_views(false))
-            {
+        for (auto& v : views) {
+            for (auto& view : v->enumerate_views(false)) {
                 wf::point_t view_delta{0, 0};
                 if (!view->is_visible() || repaint.ws_damage.empty())
                     continue;
@@ -816,17 +790,14 @@ class wf::render_manager::impl
                  * 2. The view is visible, but not mapped
                  *    => it is snapshotted and kept alive by some plugin
                  */
-                if (view->has_transformer() || !view->is_mapped())
-                {
+                if (view->has_transformer() || !view->is_mapped()) {
                     /* Snapshotted views include all of their subsurfaces, so we
                      * don't recursively go into subsurfaces. */
                     schedule_snapshotted_view(repaint, view, view_delta);
-                }
-                else
-                {
+                } else {
                     /* Make sure view position is relative to the workspace
                      * being rendered */
-                    auto obox = view->get_output_geometry() +  view_delta;
+                    auto obox = view->get_output_geometry() + view_delta;
                     for (auto& child : view->enumerate_surfaces({obox.x, obox.y}))
                         schedule_surface(repaint, child.surface, child.position);
                 }
@@ -847,8 +818,7 @@ class wf::render_manager::impl
         if (repaint.ws_damage.empty())
             return repaint;
 
-        if (scale_x != stream.scale_x || scale_y != stream.scale_y)
-        {
+        if (scale_x != stream.scale_x || scale_y != stream.scale_y) {
             /* FIXME: enable scaled rendering */
             //        stream->scale_x = scale_x;
             //        stream->scale_y = scale_y;
@@ -861,15 +831,15 @@ class wf::render_manager::impl
         OpenGL::render_end();
 
         repaint.fb = get_target_framebuffer();
-        if (stream.buffer.fb != 0 && stream.buffer.tex != 0)
-        {
+        if (stream.buffer.fb != 0 && stream.buffer.tex != 0) {
             /* Use the workspace buffers */
             repaint.fb.fb = stream.buffer.fb;
             repaint.fb.tex = stream.buffer.tex;
         }
 
         auto g = output->get_relative_geometry();
-        auto cws = output->workspace->get_current_workspace();;
+        auto cws = output->workspace->get_current_workspace();
+        ;
         repaint.ws_dx = (stream.ws.x - cws.x) * g.width,
         repaint.ws_dy = (stream.ws.y - cws.y) * g.height;
 
@@ -881,18 +851,16 @@ class wf::render_manager::impl
     void clear_empty_areas(workspace_stream_repaint_t& repaint, wf::color_t color)
     {
         OpenGL::render_begin(repaint.fb);
-        for (const auto& rect : repaint.ws_damage)
-        {
+        for (const auto& rect : repaint.ws_damage) {
             repaint.fb.logic_scissor(wlr_box_from_pixman_box(rect));
             OpenGL::clear(color, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
         OpenGL::render_end();
     }
 
-    void send_sampled_on_output(wf::surface_interface_t *surface)
+    void send_sampled_on_output(wf::surface_interface_t* surface)
     {
-        if (surface->get_wlr_surface() != nullptr)
-        {
+        if (surface->get_wlr_surface() != nullptr) {
             wlr_presentation_surface_sampled_on_output(
                 wf::get_core_impl().protocols.presentation,
                 surface->get_wlr_surface(), output->handle);
@@ -903,20 +871,16 @@ class wf::render_manager::impl
     {
         wf::geometry_t fb_geometry = repaint.fb.geometry;
 
-        for (auto& ds : wf::reverse(repaint.to_render))
-        {
-            if (ds->view)
-            {
+        for (auto& ds : wf::reverse(repaint.to_render)) {
+            if (ds->view) {
                 repaint.fb.geometry = fb_geometry + ds->pos;
                 ds->view->render_transformed(repaint.fb, ds->damage);
                 for (auto& child : ds->view->enumerate_surfaces({0, 0}))
                     send_sampled_on_output(child.surface);
-            }
-            else
-            {
+            } else {
                 repaint.fb.geometry = fb_geometry;
-                ds->surface->simple_render(repaint.fb,
-                    ds->pos.x, ds->pos.y, ds->damage);
+                ds->surface->simple_render(
+                    repaint.fb, ds->pos.x, ds->pos.y, ds->damage);
                 send_sampled_on_output(ds->surface);
             }
         }
@@ -925,8 +889,8 @@ class wf::render_manager::impl
         repaint.fb.geometry = fb_geometry;
     }
 
-    void workspace_stream_update(workspace_stream_t& stream,
-        float scale_x = 1, float scale_y = 1)
+    void workspace_stream_update(
+        workspace_stream_t& stream, float scale_x = 1, float scale_y = 1)
     {
         workspace_stream_repaint_t repaint =
             calculate_repaint_for_stream(stream, scale_x, scale_y);
@@ -941,8 +905,7 @@ class wf::render_manager::impl
 
         check_schedule_surfaces(repaint, stream);
 
-        if (stream.background.a < 0)
-        {
+        if (stream.background.a < 0) {
             clear_empty_areas(repaint, background_color_opt);
         } else {
             clear_empty_areas(repaint, stream.background);
@@ -963,29 +926,85 @@ class wf::render_manager::impl
     }
 };
 
-render_manager::render_manager(output_t *o)
-    : pimpl(new impl(o)) { }
+render_manager::render_manager(output_t* o) : pimpl(new impl(o)) {}
 render_manager::~render_manager() = default;
-void render_manager::set_renderer(render_hook_t rh) { pimpl->set_renderer(rh); }
-void render_manager::set_redraw_always(bool always) { pimpl->set_redraw_always(always); }
-wf::region_t render_manager::get_swap_damage() { return pimpl->get_swap_damage(); }
-void render_manager::schedule_redraw() { pimpl->output_damage->schedule_repaint(); }
-void render_manager::add_inhibit(bool add) { pimpl->add_inhibit(add); }
-void render_manager::add_effect(effect_hook_t* hook, output_effect_type_t type) {pimpl->effects->add_effect(hook, type); }
-void render_manager::rem_effect(effect_hook_t* hook) { pimpl->effects->rem_effect(hook); }
-void render_manager::add_post(post_hook_t* hook) { pimpl->postprocessing->add_post(hook); }
-void render_manager::rem_post(post_hook_t* hook) { pimpl->postprocessing->rem_post(hook); }
-wf::region_t render_manager::get_scheduled_damage() { return pimpl->output_damage->get_scheduled_damage(); }
-void render_manager::damage_whole() { pimpl->output_damage->damage_whole(); }
-void render_manager::damage_whole_idle() { pimpl->output_damage->damage_whole_idle(); }
-void render_manager::damage(const wlr_box& box) { pimpl->output_damage->damage(box); }
-void render_manager::damage(const wf::region_t& region) { pimpl->output_damage->damage(region); }
-wlr_box render_manager::get_ws_box(wf::point_t ws) const { return pimpl->output_damage->get_ws_box(ws); }
-wf::framebuffer_t render_manager::get_target_framebuffer() const { return pimpl->get_target_framebuffer(); }
-void render_manager::workspace_stream_start(workspace_stream_t& stream) { pimpl->workspace_stream_start(stream); }
-void render_manager::workspace_stream_update(workspace_stream_t& stream,
-    float scale_x, float scale_y){ pimpl->workspace_stream_update(stream); }
-void render_manager::workspace_stream_stop(workspace_stream_t& stream) { pimpl->workspace_stream_stop(stream); }
+void render_manager::set_renderer(render_hook_t rh)
+{
+    pimpl->set_renderer(rh);
+}
+void render_manager::set_redraw_always(bool always)
+{
+    pimpl->set_redraw_always(always);
+}
+wf::region_t render_manager::get_swap_damage()
+{
+    return pimpl->get_swap_damage();
+}
+void render_manager::schedule_redraw()
+{
+    pimpl->output_damage->schedule_repaint();
+}
+void render_manager::add_inhibit(bool add)
+{
+    pimpl->add_inhibit(add);
+}
+void render_manager::add_effect(effect_hook_t* hook, output_effect_type_t type)
+{
+    pimpl->effects->add_effect(hook, type);
+}
+void render_manager::rem_effect(effect_hook_t* hook)
+{
+    pimpl->effects->rem_effect(hook);
+}
+void render_manager::add_post(post_hook_t* hook)
+{
+    pimpl->postprocessing->add_post(hook);
+}
+void render_manager::rem_post(post_hook_t* hook)
+{
+    pimpl->postprocessing->rem_post(hook);
+}
+wf::region_t render_manager::get_scheduled_damage()
+{
+    return pimpl->output_damage->get_scheduled_damage();
+}
+void render_manager::damage_whole()
+{
+    pimpl->output_damage->damage_whole();
+}
+void render_manager::damage_whole_idle()
+{
+    pimpl->output_damage->damage_whole_idle();
+}
+void render_manager::damage(const wlr_box& box)
+{
+    pimpl->output_damage->damage(box);
+}
+void render_manager::damage(const wf::region_t& region)
+{
+    pimpl->output_damage->damage(region);
+}
+wlr_box render_manager::get_ws_box(wf::point_t ws) const
+{
+    return pimpl->output_damage->get_ws_box(ws);
+}
+wf::framebuffer_t render_manager::get_target_framebuffer() const
+{
+    return pimpl->get_target_framebuffer();
+}
+void render_manager::workspace_stream_start(workspace_stream_t& stream)
+{
+    pimpl->workspace_stream_start(stream);
+}
+void render_manager::workspace_stream_update(
+    workspace_stream_t& stream, float scale_x, float scale_y)
+{
+    pimpl->workspace_stream_update(stream);
+}
+void render_manager::workspace_stream_stop(workspace_stream_t& stream)
+{
+    pimpl->workspace_stream_stop(stream);
+}
 
 } // namespace wf
 

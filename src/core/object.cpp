@@ -14,12 +14,12 @@ class wf::signal_connection_t::impl
     signal_callback_t callback;
     std::set<nonstd::observer_ptr<signal_provider_t>> connected_providers;
 
-    void add(signal_provider_t *provider)
+    void add(signal_provider_t* provider)
     {
         connected_providers.insert(provider);
     }
 
-    void remove(signal_provider_t *provider)
+    void remove(signal_provider_t* provider)
     {
         connected_providers.erase(provider);
     }
@@ -27,15 +27,15 @@ class wf::signal_connection_t::impl
 
 wf::signal_connection_t::signal_connection_t()
 {
-    this->priv = std::make_unique<impl> ();
+    this->priv = std::make_unique<impl>();
 }
 wf::signal_connection_t::~signal_connection_t()
 {
     disconnect();
 }
 
-wf::signal_connection_t::signal_connection_t(signal_callback_t callback)
-    : signal_connection_t()
+wf::signal_connection_t::signal_connection_t(signal_callback_t callback) :
+    signal_connection_t()
 {
     priv->callback = callback;
 }
@@ -45,7 +45,7 @@ void wf::signal_connection_t::set_callback(signal_callback_t callback)
     priv->callback = callback;
 }
 
-void wf::signal_connection_t::emit(signal_data_t *data)
+void wf::signal_connection_t::emit(signal_data_t* data)
 {
     if (this->priv->callback)
         this->priv->callback(data);
@@ -61,30 +61,29 @@ void wf::signal_connection_t::disconnect()
 class wf::signal_provider_t::sprovider_impl
 {
   public:
-    std::unordered_map<std::string,
-        wf::safe_list_t<signal_connection_t*>> signals;
+    std::unordered_map<std::string, wf::safe_list_t<signal_connection_t*>>
+        signals;
 
-    std::unordered_map<std::string,
-        wf::safe_list_t<signal_callback_t*>> deprecated_signals;
+    std::unordered_map<std::string, wf::safe_list_t<signal_callback_t*>>
+        deprecated_signals;
 };
 
 wf::signal_provider_t::signal_provider_t()
 {
-    this->sprovider_priv = std::make_unique<sprovider_impl> ();
+    this->sprovider_priv = std::make_unique<sprovider_impl>();
 }
 
 wf::signal_provider_t::~signal_provider_t()
 {
-    for (auto& s : sprovider_priv->signals)
-    {
-        s.second.for_each([=] (signal_connection_t *connection) {
+    for (auto& s : sprovider_priv->signals) {
+        s.second.for_each([=](signal_connection_t* connection) {
             connection->priv->remove(this);
         });
     }
 }
 
-void wf::signal_provider_t::connect_signal(std::string name,
-    signal_connection_t* callback)
+void wf::signal_provider_t::connect_signal(
+    std::string name, signal_connection_t* callback)
 {
     sprovider_priv->signals[name].push_back(callback);
     callback->priv->add(this);
@@ -92,12 +91,9 @@ void wf::signal_provider_t::connect_signal(std::string name,
 
 void wf::signal_provider_t::disconnect_signal(signal_connection_t* connection)
 {
-    for (auto& s : sprovider_priv->signals)
-    {
-        s.second.remove_if([=] (signal_connection_t *connected)
-        {
-            if (connected == connection)
-            {
+    for (auto& s : sprovider_priv->signals) {
+        s.second.remove_if([=](signal_connection_t* connected) {
+            if (connected == connection) {
                 connected->priv->remove(this);
                 return true;
             }
@@ -107,30 +103,28 @@ void wf::signal_provider_t::disconnect_signal(signal_connection_t* connection)
 }
 
 /* Deprecated: */
-void wf::signal_provider_t::connect_signal(std::string name,
-    signal_callback_t* callback)
+void wf::signal_provider_t::connect_signal(
+    std::string name, signal_callback_t* callback)
 {
     sprovider_priv->deprecated_signals[name].push_back(callback);
 }
 
 /* Deprecated: */
-void wf::signal_provider_t::disconnect_signal(std::string name,
-    signal_callback_t* callback)
+void wf::signal_provider_t::disconnect_signal(
+    std::string name, signal_callback_t* callback)
 {
     sprovider_priv->deprecated_signals[name].remove_all(callback);
 }
 
 /* Emit the given signal. No type checking for data is required */
-void wf::signal_provider_t::emit_signal(std::string name, wf::signal_data_t *data)
+void wf::signal_provider_t::emit_signal(std::string name, wf::signal_data_t* data)
 {
-    sprovider_priv->signals[name].for_each([data] (auto call) {
-        call->emit(data);
-    });
+    sprovider_priv->signals[name].for_each(
+        [data](auto call) { call->emit(data); });
 
     /* Deprecated: */
-    sprovider_priv->deprecated_signals[name].for_each([data] (auto call) {
-        (*call)(data);
-    });
+    sprovider_priv->deprecated_signals[name].for_each(
+        [data](auto call) { (*call)(data); });
 }
 
 class wf::object_base_t::obase_impl
@@ -148,9 +142,7 @@ wf::object_base_t::object_base_t()
     obase_priv->object_id = global_id++;
 }
 
-wf::object_base_t::~object_base_t()
-{
-}
+wf::object_base_t::~object_base_t() {}
 
 std::string wf::object_base_t::to_string() const
 {
@@ -174,7 +166,7 @@ void wf::object_base_t::erase_data(std::string name)
     data.reset();
 }
 
-wf::custom_data_t *wf::object_base_t::_fetch_data(std::string name)
+wf::custom_data_t* wf::object_base_t::_fetch_data(std::string name)
 {
     auto it = obase_priv->data.find(name);
     if (it == obase_priv->data.end())
@@ -183,7 +175,7 @@ wf::custom_data_t *wf::object_base_t::_fetch_data(std::string name)
     return it->second.get();
 }
 
-wf::custom_data_t *wf::object_base_t::_fetch_erase(std::string name)
+wf::custom_data_t* wf::object_base_t::_fetch_erase(std::string name)
 {
     auto data = obase_priv->data[name].release();
     erase_data(name);
@@ -191,8 +183,8 @@ wf::custom_data_t *wf::object_base_t::_fetch_erase(std::string name)
     return data;
 }
 
-void wf::object_base_t::_store_data(std::unique_ptr<wf::custom_data_t> data,
-    std::string name)
+void wf::object_base_t::_store_data(
+    std::unique_ptr<wf::custom_data_t> data, std::string name)
 {
     obase_priv->data[name] = std::move(data);
 }

@@ -7,7 +7,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 static wf::option_wrapper_t<int> fire_particles{"animate/fire_particles"};
-static wf::option_wrapper_t<double> fire_particle_size{"animate/fire_particle_size"};
+static wf::option_wrapper_t<double> fire_particle_size{
+    "animate/fire_particle_size"};
 
 // generate a random float between s and e
 static float random(float s, float e)
@@ -27,34 +28,43 @@ class FireTransformer : public wf::view_transformer_t
 {
     wf::geometry_t last_boundingbox;
 
-    public:
+  public:
     ParticleSystem ps;
 
     FireTransformer(wayfire_view view) :
-        ps(fire_particles,
-           [=] (Particle& p) {init_particle(p); })
+        ps(fire_particles, [=](Particle& p) { init_particle(p); })
     {
         last_boundingbox = view->get_bounding_box();
         ps.resize(particle_count_for_width(last_boundingbox.width));
     }
 
-    ~FireTransformer() { }
+    ~FireTransformer() {}
 
-    wf::pointf_t transform_point(wf::geometry_t view, wf::pointf_t point) override { return point; }
-    wf::pointf_t untransform_point(wf::geometry_t view, wf::pointf_t point) override { return point; }
+    wf::pointf_t transform_point(wf::geometry_t view, wf::pointf_t point) override
+    {
+        return point;
+    }
+    wf::pointf_t untransform_point(
+        wf::geometry_t view, wf::pointf_t point) override
+    {
+        return point;
+    }
 
     static constexpr int left_border = 50;
     static constexpr int right_border = 50;
     static constexpr int top_border = 100;
     static constexpr int bottom_border = 50;
 
-    uint32_t get_z_order() override { return wf::TRANSFORMER_HIGHLEVEL + 1; }
+    uint32_t get_z_order() override
+    {
+        return wf::TRANSFORMER_HIGHLEVEL + 1;
+    }
     wlr_box get_bounding_box(wf::geometry_t view, wlr_box region) override
     {
         last_boundingbox = view;
         ps.resize(particle_count_for_width(last_boundingbox.width));
 
-         // TODO
+        // TODO
         //
         view.x -= left_border;
         view.y -= top_border;
@@ -78,7 +88,7 @@ class FireTransformer : public wf::view_transformer_t
 
         p.pos = {random(0, last_boundingbox.width),
             random(last_boundingbox.height * progress_line - 10,
-                   last_boundingbox.height * progress_line + 10)};
+                last_boundingbox.height * progress_line + 10)};
         p.start_pos = p.pos;
 
         p.speed = {random(-10, 10), random(-25, 5)};
@@ -88,8 +98,8 @@ class FireTransformer : public wf::view_transformer_t
         p.base_radius = p.radius = random(size * 0.8, size * 1.2);
     }
 
-    void render_box(wf::texture_t src_tex, wlr_box src_box,
-        wlr_box scissor_box, const wf::framebuffer_t& target_fb) override
+    void render_box(wf::texture_t src_tex, wlr_box src_box, wlr_box scissor_box,
+        const wf::framebuffer_t& target_fb) override
     {
         OpenGL::render_begin(target_fb);
         target_fb.logic_scissor(scissor_box);
@@ -99,8 +109,10 @@ class FireTransformer : public wf::view_transformer_t
         gl_geometry src_geometry = {x, y, x + w, y + h * progress_line};
 
         gl_geometry tex_geometry = {
-            0, 1,
-            1, 1 - progress_line,
+            0,
+            1,
+            1,
+            1 - progress_line,
         };
 
         OpenGL::render_transformed_texture(src_tex, src_geometry, tex_geometry,
@@ -125,9 +137,10 @@ void FireAnimation::init(wayfire_view view, int dur, wf_animation_type type)
 
     this->view = view;
 
-    int msec = dur * fire_duration_mod_for_height(
-        view->get_bounding_box().height);
-    this->progression = wf::animation::simple_animation_t(wf::create_option<int>(msec), wf::animation::smoothing::linear);
+    int msec =
+        dur * fire_duration_mod_for_height(view->get_bounding_box().height);
+    this->progression = wf::animation::simple_animation_t(
+        wf::create_option<int>(msec), wf::animation::smoothing::linear);
     this->progression.animate(0, 1);
 
     if (type & HIDING_ANIMATION)
@@ -135,7 +148,7 @@ void FireAnimation::init(wayfire_view view, int dur, wf_animation_type type)
 
     name = "animation-fire-" + std::to_string(type);
     auto tr = std::make_unique<FireTransformer>(view);
-    transformer = decltype(transformer) (tr.get());
+    transformer = decltype(transformer)(tr.get());
 
     view->add_transformer(std::move(tr), name);
 }

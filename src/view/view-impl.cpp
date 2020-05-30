@@ -14,10 +14,9 @@ extern "C"
 #include <wlr/util/edges.h>
 }
 
-wf::wlr_view_t::wlr_view_t()
-    : wf::wlr_surface_base_t(this), wf::view_interface_t()
-{
-}
+wf::wlr_view_t::wlr_view_t() :
+    wf::wlr_surface_base_t(this), wf::view_interface_t()
+{}
 
 void wf::wlr_view_t::set_role(view_role_t new_role)
 {
@@ -56,23 +55,21 @@ std::string wf::wlr_view_t::get_title()
     return this->title;
 }
 
-void wf::wlr_view_t::handle_minimize_hint(wf::surface_interface_t *relative_to,
-    const wlr_box &hint)
+void wf::wlr_view_t::handle_minimize_hint(
+    wf::surface_interface_t* relative_to, const wlr_box& hint)
 {
-    auto relative_to_view =
-        dynamic_cast<view_interface_t*> (relative_to);
-    if (!relative_to_view)
-    {
+    auto relative_to_view = dynamic_cast<view_interface_t*>(relative_to);
+    if (!relative_to_view) {
         LOGE("Setting minimize hint to unknown surface. Wayfire currently"
-            "supports only setting hints relative to views.");
+             "supports only setting hints relative to views.");
         return;
     }
 
-    if (relative_to_view->get_output() != get_output())
-    {
+    if (relative_to_view->get_output() != get_output()) {
         LOGE("Minimize hint set to surface on a different output, "
-            "problems might arise");
-        /* TODO: translate coordinates in case minimize hint is on another output */
+             "problems might arise");
+        /* TODO: translate coordinates in case minimize hint is on another output
+         */
     }
 
     auto box = relative_to_view->get_output_geometry();
@@ -103,11 +100,11 @@ wf::region_t wf::wlr_view_t::get_transformed_opaque_region()
     return region;
 }
 
-void wf::wlr_view_t::set_position(int x, int y,
-    wf::geometry_t old_geometry, bool send_signal)
+void wf::wlr_view_t::set_position(
+    int x, int y, wf::geometry_t old_geometry, bool send_signal)
 {
     auto obox = get_output_geometry();
-    auto wm   = get_wm_geometry();
+    auto wm = get_wm_geometry();
 
     view_geometry_changed_signal data;
     data.view = self();
@@ -120,8 +117,7 @@ void wf::wlr_view_t::set_position(int x, int y,
 
     /* Make sure that if we move the view while it is unmapped, its snapshot
      * is still valid coordinates */
-    if (view_impl->offscreen_buffer.valid())
-    {
+    if (view_impl->offscreen_buffer.valid()) {
         view_impl->offscreen_buffer.geometry.x += x - data.old_geometry.x;
         view_impl->offscreen_buffer.geometry.y += y - data.old_geometry.y;
     }
@@ -141,16 +137,14 @@ void wf::wlr_view_t::move(int x, int y)
 
 void wf::wlr_view_t::adjust_anchored_edge(wf::dimensions_t new_size)
 {
-    if (view_impl->edges)
-    {
+    if (view_impl->edges) {
         auto wm = get_wm_geometry();
         if (view_impl->edges & WLR_EDGE_LEFT)
             wm.x += geometry.width - new_size.width;
         if (view_impl->edges & WLR_EDGE_TOP)
             wm.y += geometry.height - new_size.height;
 
-        set_position(wm.x, wm.y,
-            get_wm_geometry(), false);
+        set_position(wm.x, wm.y, get_wm_geometry(), false);
     }
 }
 
@@ -217,7 +211,7 @@ wf::geometry_t wf::wlr_view_t::get_wm_geometry()
         return geometry;
 }
 
-wlr_surface *wf::wlr_view_t::get_keyboard_focus_surface()
+wlr_surface* wf::wlr_view_t::get_keyboard_focus_surface()
 {
     if (is_mapped() && view_impl->keyboard_focus_enabled)
         return surface;
@@ -234,8 +228,7 @@ void wf::wlr_view_t::set_decoration_mode(bool use_csd)
 {
     bool was_decorated = should_be_decorated();
     this->has_client_decoration = use_csd;
-    if ((was_decorated != should_be_decorated()) && is_mapped())
-    {
+    if ((was_decorated != should_be_decorated()) && is_mapped()) {
         wf::decoration_state_updated_signal data;
         data.view = self();
 
@@ -245,7 +238,7 @@ void wf::wlr_view_t::set_decoration_mode(bool use_csd)
     }
 }
 
-void wf::wlr_view_t::set_output(wf::output_t *wo)
+void wf::wlr_view_t::set_output(wf::output_t* wo)
 {
     auto old_output = get_output();
     toplevel_update_output(old_output, false);
@@ -272,7 +265,7 @@ void wf::wlr_view_t::commit()
     this->last_bounding_box = get_bounding_box();
 }
 
-void wf::wlr_view_t::map(wlr_surface *surface)
+void wf::wlr_view_t::map(wlr_surface* surface)
 {
     wlr_surface_base_t::map(surface);
     if (wf::get_core_impl().uses_csd.count(surface))
@@ -280,8 +273,7 @@ void wf::wlr_view_t::map(wlr_surface *surface)
 
     update_size();
 
-    if (role == VIEW_ROLE_TOPLEVEL && !parent)
-    {
+    if (role == VIEW_ROLE_TOPLEVEL && !parent) {
         get_output()->workspace->add_view(self(), wf::LAYER_WORKSPACE);
         get_output()->focus_view(self(), true);
     }
@@ -330,8 +322,7 @@ void wf::view_interface_t::emit_view_unmap()
     unmap_view_signal data;
     data.view = self();
 
-    if (get_output())
-    {
+    if (get_output()) {
         get_output()->emit_signal("unmap-view", &data);
         get_output()->emit_signal("view-disappeared", &data);
     }
@@ -370,23 +361,24 @@ void wf::wlr_view_t::create_toplevel()
     toplevel_handle = wlr_foreign_toplevel_handle_v1_create(
         wf::get_core().protocols.toplevel_manager);
 
-    toplevel_handle_v1_maximize_request.set_callback([&] (void *data) {
+    toplevel_handle_v1_maximize_request.set_callback([&](void* data) {
         auto ev =
-            static_cast<wlr_foreign_toplevel_handle_v1_maximized_event*> (data);
+            static_cast<wlr_foreign_toplevel_handle_v1_maximized_event*>(data);
         tile_request(ev->maximized ? wf::TILED_EDGES_ALL : 0);
     });
-    toplevel_handle_v1_minimize_request.set_callback([&] (void *data) {
+    toplevel_handle_v1_minimize_request.set_callback([&](void* data) {
         auto ev =
-            static_cast<wlr_foreign_toplevel_handle_v1_minimized_event*> (data);
+            static_cast<wlr_foreign_toplevel_handle_v1_minimized_event*>(data);
         minimize_request(ev->minimized);
     });
     toplevel_handle_v1_activate_request.set_callback(
-        [&] (void *) { focus_request(); });
-    toplevel_handle_v1_close_request.set_callback([&] (void *) { close(); });
+        [&](void*) { focus_request(); });
+    toplevel_handle_v1_close_request.set_callback([&](void*) { close(); });
 
-    toplevel_handle_v1_set_rectangle_request.set_callback([&] (void *data) {
-        auto ev = static_cast<
-            wlr_foreign_toplevel_handle_v1_set_rectangle_event*> (data);
+    toplevel_handle_v1_set_rectangle_request.set_callback([&](void* data) {
+        auto ev =
+            static_cast<wlr_foreign_toplevel_handle_v1_set_rectangle_event*>(
+                data);
         auto surface = wf_view_from_void(ev->surface->data);
         handle_minimize_hint(surface, {ev->x, ev->y, ev->width, ev->height});
     });
@@ -427,8 +419,8 @@ void wf::wlr_view_t::toplevel_send_title()
 {
     if (!toplevel_handle)
         return;
-    wlr_foreign_toplevel_handle_v1_set_title(toplevel_handle,
-        get_title().c_str());
+    wlr_foreign_toplevel_handle_v1_set_title(
+        toplevel_handle, get_title().c_str());
 }
 
 void wf::wlr_view_t::toplevel_send_app_id()
@@ -443,7 +435,7 @@ void wf::wlr_view_t::toplevel_send_app_id()
         wf::get_core_impl().gtk_shell, surface->resource);
 
     std::string app_id_mode =
-        wf::option_wrapper_t<std::string> ("workarounds/app_id_mode");
+        wf::option_wrapper_t<std::string>("workarounds/app_id_mode");
 
     if (app_id_mode == "gtk-shell" && gtk_shell_app_id.length() > 0) {
         app_id = gtk_shell_app_id;
@@ -461,23 +453,21 @@ void wf::wlr_view_t::toplevel_send_state()
     if (!toplevel_handle)
         return;
 
-    wlr_foreign_toplevel_handle_v1_set_maximized(toplevel_handle,
-        tiled_edges == TILED_EDGES_ALL);
+    wlr_foreign_toplevel_handle_v1_set_maximized(
+        toplevel_handle, tiled_edges == TILED_EDGES_ALL);
     wlr_foreign_toplevel_handle_v1_set_activated(toplevel_handle, activated);
     wlr_foreign_toplevel_handle_v1_set_minimized(toplevel_handle, minimized);
 }
 
-void wf::wlr_view_t::toplevel_update_output(wf::output_t *wo, bool enter)
+void wf::wlr_view_t::toplevel_update_output(wf::output_t* wo, bool enter)
 {
     if (!wo || !toplevel_handle)
         return;
 
     if (enter) {
-        wlr_foreign_toplevel_handle_v1_output_enter(
-            toplevel_handle, wo->handle);
+        wlr_foreign_toplevel_handle_v1_output_enter(toplevel_handle, wo->handle);
     } else {
-        wlr_foreign_toplevel_handle_v1_output_leave(
-            toplevel_handle, wo->handle);
+        wlr_foreign_toplevel_handle_v1_output_leave(toplevel_handle, wo->handle);
     }
 }
 
@@ -515,33 +505,33 @@ extern "C"
 #endif
 }
 
-wf::surface_interface_t* wf::wf_surface_from_void(void *handle)
+wf::surface_interface_t* wf::wf_surface_from_void(void* handle)
 {
-    return static_cast<wf::surface_interface_t*> (handle);
+    return static_cast<wf::surface_interface_t*>(handle);
 }
 
-wf::view_interface_t* wf::wf_view_from_void(void *handle)
+wf::view_interface_t* wf::wf_view_from_void(void* handle)
 {
-    return static_cast<wf::view_interface_t*> (handle);
+    return static_cast<wf::view_interface_t*>(handle);
 }
 
-wf::compositor_surface_t *wf::compositor_surface_from_surface(
-    wf::surface_interface_t *surface)
+wf::compositor_surface_t* wf::compositor_surface_from_surface(
+    wf::surface_interface_t* surface)
 {
-    return dynamic_cast<wf::compositor_surface_t*> (surface);
+    return dynamic_cast<wf::compositor_surface_t*>(surface);
 }
 
-wf::compositor_interactive_view_t *wf::interactive_view_from_view(
-    wf::view_interface_t *view)
+wf::compositor_interactive_view_t* wf::interactive_view_from_view(
+    wf::view_interface_t* view)
 {
-    return dynamic_cast<wf::compositor_interactive_view_t*> (view);
+    return dynamic_cast<wf::compositor_interactive_view_t*>(view);
 }
 
-wayfire_view wf::wl_surface_to_wayfire_view(wl_resource *resource)
+wayfire_view wf::wl_surface_to_wayfire_view(wl_resource* resource)
 {
-    auto surface = (wlr_surface*) wl_resource_get_user_data(resource);
+    auto surface = (wlr_surface*)wl_resource_get_user_data(resource);
 
-    void *handle = NULL;
+    void* handle = NULL;
 
     if (wlr_surface_is_xdg_surface_v6(surface))
         handle = wlr_xdg_surface_v6_from_wlr_surface(surface)->data;

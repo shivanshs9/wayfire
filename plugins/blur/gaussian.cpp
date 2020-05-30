@@ -1,7 +1,7 @@
 #include "blur.hpp"
 
 static const char* gaussian_vertex_shader =
-R"(
+    R"(
 #version 100
 
 attribute mediump vec2 position;
@@ -28,7 +28,7 @@ void main() {
 )";
 
 static const char* gaussian_fragment_shader_horz =
-R"(
+    R"(
 #version 100
 precision mediump float;
 
@@ -54,7 +54,7 @@ void main()
 })";
 
 static const char* gaussian_fragment_shader_vert =
-R"(
+    R"(
 #version 100
 precision mediump float;
 
@@ -83,13 +83,13 @@ static const wf_blur_default_option_values gaussian_defaults = {
     .algorithm_name = "gaussian",
     .offset = "2",
     .degrade = "1",
-    .iterations = "2"
-};
+    .iterations = "2"};
 
 class wf_gaussian_blur : public wf_blur_base
 {
   public:
-    wf_gaussian_blur(wf::output_t *output) : wf_blur_base(output, gaussian_defaults)
+    wf_gaussian_blur(wf::output_t* output) :
+        wf_blur_base(output, gaussian_defaults)
     {
         OpenGL::render_begin();
         program[0].set_simple(OpenGL::compile_program(
@@ -103,11 +103,7 @@ class wf_gaussian_blur : public wf_blur_base
     {
         float offset = offset_opt;
         static const float vertexData[] = {
-            -1.0f, -1.0f,
-             1.0f, -1.0f,
-             1.0f,  1.0f,
-            -1.0f,  1.0f
-        };
+            -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
         program[i].use(wf::TEXTURE_TYPE_RGBA);
         program[i].uniform2f("size", width, height);
@@ -157,7 +153,7 @@ class wf_gaussian_blur : public wf_blur_base
     }
 };
 
-std::unique_ptr<wf_blur_base> create_gaussian_blur(wf::output_t *output)
+std::unique_ptr<wf_blur_base> create_gaussian_blur(wf::output_t* output)
 {
-    return std::make_unique<wf_gaussian_blur> (output);
+    return std::make_unique<wf_gaussian_blur>(output);
 }

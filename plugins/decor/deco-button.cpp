@@ -3,8 +3,8 @@
 #include <wayfire/opengl.hpp>
 #include <wayfire/plugins/common/cairo-util.hpp>
 
-#define HOVERED  1.0
-#define NORMAL   0.0
+#define HOVERED 1.0
+#define NORMAL  0.0
 #define PRESSED -0.7
 
 namespace wf
@@ -12,9 +12,9 @@ namespace wf
 namespace decor
 {
 
-button_t::button_t(const decoration_theme_t& t, std::function<void()> damage)
-    : theme(t), damage_callback(damage)
-{ }
+button_t::button_t(const decoration_theme_t& t, std::function<void()> damage) :
+    theme(t), damage_callback(damage)
+{}
 
 void button_t::set_button_type(button_type_t type)
 {
@@ -32,8 +32,7 @@ button_type_t button_t::get_button_type() const
 void button_t::set_hover(bool is_hovered)
 {
     this->is_hovered = is_hovered;
-    if (!this->is_pressed)
-    {
+    if (!this->is_pressed) {
         if (is_hovered) {
             this->hover.animate(HOVERED);
         } else {
@@ -59,8 +58,8 @@ void button_t::set_pressed(bool is_pressed)
     add_idle_damage();
 }
 
-void button_t::render(const wf::framebuffer_t& fb, wf::geometry_t geometry,
-    wf::geometry_t scissor)
+void button_t::render(
+    const wf::framebuffer_t& fb, wf::geometry_t geometry, wf::geometry_t scissor)
 {
     OpenGL::render_begin(fb);
     fb.logic_scissor(scissor);
@@ -96,11 +95,11 @@ void button_t::update_texture()
 
 void button_t::add_idle_damage()
 {
-    this->idle_damage.run_once([=] () {
+    this->idle_damage.run_once([=]() {
         this->damage_callback();
         update_texture();
     });
 }
 
-}
-}
+} // namespace decor
+} // namespace wf

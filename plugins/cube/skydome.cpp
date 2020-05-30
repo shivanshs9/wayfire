@@ -5,14 +5,13 @@
 #include <wayfire/output.hpp>
 #include <wayfire/workspace-manager.hpp>
 
-
 #include <glm/gtc/matrix_transform.hpp>
 #include "shaders.tpp"
 
-#define SKYDOME_GRID_WIDTH 128
+#define SKYDOME_GRID_WIDTH  128
 #define SKYDOME_GRID_HEIGHT 128
 
-wf_cube_background_skydome::wf_cube_background_skydome(wf::output_t *output)
+wf_cube_background_skydome::wf_cube_background_skydome(wf::output_t* output)
 {
     this->output = output;
     load_program();
@@ -29,7 +28,8 @@ wf_cube_background_skydome::~wf_cube_background_skydome()
 void wf_cube_background_skydome::load_program()
 {
     OpenGL::render_begin();
-    program.set_simple(OpenGL::compile_program(cube_vertex_2_0, cube_fragment_2_0));
+    program.set_simple(
+        OpenGL::compile_program(cube_vertex_2_0, cube_fragment_2_0));
     OpenGL::render_end();
 }
 
@@ -41,22 +41,20 @@ void wf_cube_background_skydome::reload_texture()
     last_background_image = background_image;
     OpenGL::render_begin();
 
-    if (tex == (uint32_t)-1)
-    {
+    if (tex == (uint32_t)-1) {
         GL_CALL(glGenTextures(1, &tex));
     }
 
     GL_CALL(glBindTexture(GL_TEXTURE_2D, tex));
 
-    if (image_io::load_from_file(last_background_image, GL_TEXTURE_2D))
-    {
+    if (image_io::load_from_file(last_background_image, GL_TEXTURE_2D)) {
         GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
         GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    }
-    else
-    {
+        GL_CALL(
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+        GL_CALL(
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    } else {
         LOGE("Failed to load skydome image from \"%s\".",
             last_background_image.c_str());
         GL_CALL(glDeleteTextures(1, &tex));
@@ -83,10 +81,8 @@ void wf_cube_background_skydome::fill_vertices()
     indices.clear();
     coords.clear();
 
-    for (int i = 1; i < gh; i++)
-    {
-        for (int j = 0; j < gw; j++)
-        {
+    for (int i = 1; i < gh; i++) {
+        for (int j = 0; j < gw; j++) {
             float theta = ((2 * M_PI) / (gw - 1)) * j;
             float phi = (M_PI / gh) * i;
 
@@ -94,24 +90,19 @@ void wf_cube_background_skydome::fill_vertices()
             vertices.push_back(cos(phi) * scale);
             vertices.push_back(sin(theta) * sin(phi) * scale);
 
-            if (last_mirror == 0)
-            {
-                coords.push_back((float) j / (gw - 1));
-                coords.push_back((float) (i - 1) / (gh - 2));
-            }
-            else
-            {
-                float u = ((float) j / (gw - 1)) * 2.0;
+            if (last_mirror == 0) {
+                coords.push_back((float)j / (gw - 1));
+                coords.push_back((float)(i - 1) / (gh - 2));
+            } else {
+                float u = ((float)j / (gw - 1)) * 2.0;
                 coords.push_back(u - ((u > 1.0) ? (2.0 * (u - 1.0)) : 0));
-                coords.push_back((float) (i - 1) / (gh - 2));
+                coords.push_back((float)(i - 1) / (gh - 2));
             }
         }
     }
 
-    for (int i = 1; i < gh - 1; i++)
-    {
-        for(int j = 0; j < gw - 1; j++)
-        {
+    for (int i = 1; i < gh - 1; i++) {
+        for (int j = 0; j < gw - 1; j++) {
             indices.push_back((i - 1) * gw + j);
             indices.push_back((i - 1) * gw + j + gw);
             indices.push_back((i - 1) * gw + j + 1);
@@ -122,14 +113,13 @@ void wf_cube_background_skydome::fill_vertices()
     }
 }
 
-void wf_cube_background_skydome::render_frame(const wf::framebuffer_t& fb,
-        wf_cube_animation_attribs& attribs)
+void wf_cube_background_skydome::render_frame(
+    const wf::framebuffer_t& fb, wf_cube_animation_attribs& attribs)
 {
     fill_vertices();
     reload_texture();
 
-    if (tex == (uint32_t)-1)
-    {
+    if (tex == (uint32_t)-1) {
         GL_CALL(glClearColor(TEX_ERROR_FLAG_COLOR));
         GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
         return;
@@ -139,8 +129,7 @@ void wf_cube_background_skydome::render_frame(const wf::framebuffer_t& fb,
     program.use(wf::TEXTURE_TYPE_RGBA);
 
     auto rotation = glm::rotate(glm::mat4(1.0),
-        (float) (attribs.cube_animation.offset_y * 0.5),
-        glm::vec3(1., 0., 0.));
+        (float)(attribs.cube_animation.offset_y * 0.5), glm::vec3(1., 0., 0.));
 
     auto view = glm::lookAt(glm::vec3(0., 0., 0.),
         glm::vec3(0., 0., -attribs.cube_animation.offset_z),
@@ -163,8 +152,8 @@ void wf_cube_background_skydome::render_frame(const wf::framebuffer_t& fb,
     GL_CALL(glBindTexture(GL_TEXTURE_2D, tex));
 
     GL_CALL(glDrawElements(GL_TRIANGLES,
-            6 * SKYDOME_GRID_WIDTH * (SKYDOME_GRID_HEIGHT - 2),
-            GL_UNSIGNED_INT, indices.data()));
+        6 * SKYDOME_GRID_WIDTH * (SKYDOME_GRID_HEIGHT - 2), GL_UNSIGNED_INT,
+        indices.data()));
 
     program.deactivate();
     OpenGL::render_end();

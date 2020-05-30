@@ -5,12 +5,13 @@
 #include "wayfire/core.hpp"
 #include <linux/input.h>
 
-static double cross (double x1, double y1, double x2, double y2) // cross product
+static double cross(double x1, double y1, double x2, double y2) // cross product
 {
     return x1 * y2 - x2 * y1;
 }
 
-static double vlen(double x1, double y1) // length of vector centered at the origin
+static double vlen(
+    double x1, double y1) // length of vector centered at the origin
 {
     return std::sqrt(x1 * x1 + y1 * y1);
 }
@@ -22,92 +23,90 @@ class wf_wrot : public wf::plugin_interface_t
     int last_x, last_y;
     wayfire_view current_view;
 
-    public:
-        void init() override
-        {
-            grab_interface->name = "wrot";
-            grab_interface->capabilities = wf::CAPABILITY_GRAB_INPUT;
+  public:
+    void init() override
+    {
+        grab_interface->name = "wrot";
+        grab_interface->capabilities = wf::CAPABILITY_GRAB_INPUT;
 
-            call = [=] (uint32_t, int x, int y)
-            {
-                if (!output->activate_plugin(grab_interface))
-                    return false;
+        call = [=](uint32_t, int x, int y) {
+            if (!output->activate_plugin(grab_interface))
+                return false;
 
-                current_view = wf::get_core().get_cursor_focus_view();
-                if (!current_view || current_view->role != wf::VIEW_ROLE_TOPLEVEL)
-                {
-                    output->deactivate_plugin(grab_interface);
-                    return false;
-                }
+            current_view = wf::get_core().get_cursor_focus_view();
+            if (!current_view || current_view->role != wf::VIEW_ROLE_TOPLEVEL) {
+                output->deactivate_plugin(grab_interface);
+                return false;
+            }
 
-                output->focus_view(current_view, true);
-                grab_interface->grab();
+            output->focus_view(current_view, true);
+            grab_interface->grab();
 
-                last_x = x;
-                last_y = y;
+            last_x = x;
+            last_y = y;
 
-                return true;
-            };
+            return true;
+        };
 
-            output->add_button(
-                wf::option_wrapper_t<wf::buttonbinding_t>("wrot/activate"), &call);
+        output->add_button(
+            wf::option_wrapper_t<wf::buttonbinding_t>("wrot/activate"), &call);
 
-            grab_interface->callbacks.pointer.motion = [=] (int x, int y)
-            {
-                if (!current_view->get_transformer("wrot"))
-                    current_view->add_transformer(std::make_unique<wf::view_2D> (current_view), "wrot");
+        grab_interface->callbacks.pointer.motion = [=](int x, int y) {
+            if (!current_view->get_transformer("wrot"))
+                current_view->add_transformer(
+                    std::make_unique<wf::view_2D>(current_view), "wrot");
 
-                auto tr = dynamic_cast<wf::view_2D*> (current_view->get_transformer("wrot").get());
-                assert(tr);
+            auto tr = dynamic_cast<wf::view_2D*>(
+                current_view->get_transformer("wrot").get());
+            assert(tr);
 
-                current_view->damage();
+            current_view->damage();
 
-                auto g = current_view->get_wm_geometry();
+            auto g = current_view->get_wm_geometry();
 
-                double cx = g.x + g.width / 2.0;
-                double cy = g.y + g.height / 2.0;
+            double cx = g.x + g.width / 2.0;
+            double cy = g.y + g.height / 2.0;
 
-                double x1 = last_x - cx, y1 = last_y - cy;
-                double x2 = x - cx, y2 = y - cy;
+            double x1 = last_x - cx, y1 = last_y - cy;
+            double x2 = x - cx, y2 = y - cy;
 
-                if (vlen(x2, y2) <= 25)
-                    return current_view->pop_transformer("wrot");
+            if (vlen(x2, y2) <= 25)
+                return current_view->pop_transformer("wrot");
 
-                /* cross(a, b) = |a| * |b| * sin(a, b) */
-                tr->angle -= std::asin(cross(x1, y1, x2, y2) / vlen(x1, y1) / vlen(x2, y2));
+            /* cross(a, b) = |a| * |b| * sin(a, b) */
+            tr->angle -=
+                std::asin(cross(x1, y1, x2, y2) / vlen(x1, y1) / vlen(x2, y2));
 
-                current_view->damage();
+            current_view->damage();
 
-                last_x = x;
-                last_y = y;
-            };
+            last_x = x;
+            last_y = y;
+        };
 
-            grab_interface->callbacks.pointer.button = [=] (uint32_t, uint32_t s)
-            {
-                if (s == WLR_BUTTON_RELEASED)
-                    input_released();
-            };
-
-            grab_interface->callbacks.cancel = [=] ()
-            {
-                if (grab_interface->is_grabbed())
+        grab_interface->callbacks.pointer.button = [=](uint32_t, uint32_t s) {
+            if (s == WLR_BUTTON_RELEASED)
                 input_released();
-            };
-        }
+        };
 
-        void input_released()
-        {
-            grab_interface->ungrab();
-            output->deactivate_plugin(grab_interface);
-        }
-
-        void fini() override
-        {
+        grab_interface->callbacks.cancel = [=]() {
             if (grab_interface->is_grabbed())
                 input_released();
+        };
+    }
 
-            output->rem_binding(&call);
-        }
+    void input_released()
+    {
+        grab_interface->ungrab();
+        output->deactivate_plugin(grab_interface);
+    }
+
+    void fini() override
+    {
+        if (grab_interface->is_grabbed())
+            input_released();
+
+        output->rem_binding(&call);
+    }
 };
 
 DECLARE_WAYFIRE_PLUGIN(wf_wrot);

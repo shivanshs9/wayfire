@@ -17,15 +17,15 @@ void tree_node_t::set_geometry(wf::geometry_t geometry)
 
 nonstd::observer_ptr<split_node_t> tree_node_t::as_split_node()
 {
-    return nonstd::make_observer(dynamic_cast<split_node_t*> (this));
+    return nonstd::make_observer(dynamic_cast<split_node_t*>(this));
 }
 
 nonstd::observer_ptr<view_node_t> tree_node_t::as_view_node()
 {
-    return nonstd::make_observer(dynamic_cast<view_node_t*> (this));
+    return nonstd::make_observer(dynamic_cast<view_node_t*>(this));
 }
 
-wf::point_t get_output_local_coordinates(wf::output_t *output, wf::point_t p)
+wf::point_t get_output_local_coordinates(wf::output_t* output, wf::point_t p)
 {
     auto vp = output->workspace->get_current_workspace();
     auto size = output->get_screen_size();
@@ -35,7 +35,8 @@ wf::point_t get_output_local_coordinates(wf::output_t *output, wf::point_t p)
     return p;
 }
 
-wf::geometry_t get_output_local_coordinates(wf::output_t *output, wf::geometry_t g)
+wf::geometry_t get_output_local_coordinates(
+    wf::output_t* output, wf::geometry_t g)
 {
     auto new_tl = get_output_local_coordinates(output, wf::point_t{g.x, g.y});
     g.x = new_tl.x;
@@ -49,8 +50,7 @@ wf::geometry_t split_node_t::get_child_geometry(
     int32_t child_pos, int32_t child_size)
 {
     wf::geometry_t child_geometry = this->geometry;
-    switch (get_split_direction())
-    {
+    switch (get_split_direction()) {
         case SPLIT_HORIZONTAL:
             child_geometry.y += child_pos;
             child_geometry.height = child_size;
@@ -67,8 +67,7 @@ wf::geometry_t split_node_t::get_child_geometry(
 
 int32_t split_node_t::calculate_splittable(wf::geometry_t available) const
 {
-    switch (get_split_direction())
-    {
+    switch (get_split_direction()) {
         case SPLIT_HORIZONTAL:
             return available.height;
         case SPLIT_VERTICAL:
@@ -97,13 +96,12 @@ void split_node_t::recalculate_children(wf::geometry_t available)
     /* Sum of children sizes up to now */
     double up_to_now = 0.0;
 
-    auto progress = [=] (double current) {
+    auto progress = [=](double current) {
         return (current / old_child_sum) * total_splittable;
     };
 
     /* For each child, assign its percentage of the whole. */
-    for (auto& child : this->children)
-    {
+    for (auto& child : this->children) {
         /* Calculate child_start/end every time using the percentage from the
          * beginning. This way we avoid rounding errors causing empty spaces */
         int32_t child_start = progress(up_to_now);
@@ -158,14 +156,11 @@ std::unique_ptr<tree_node_t> split_node_t::remove_child(
     std::unique_ptr<tree_node_t> result;
     auto it = this->children.begin();
 
-    while (it != this->children.end())
-    {
-        if (it->get() == child.get())
-        {
+    while (it != this->children.end()) {
+        if (it->get() == child.get()) {
             result = std::move(*it);
             it = this->children.erase(it);
-        } else
-        {
+        } else {
             ++it;
         }
     }
@@ -197,7 +192,7 @@ split_node_t::split_node_t(split_direction_t dir)
 struct view_node_custom_data_t : public custom_data_t
 {
     nonstd::observer_ptr<view_node_t> ptr;
-    view_node_custom_data_t(view_node_t *node)
+    view_node_custom_data_t(view_node_t* node)
     {
         ptr = nonstd::make_observer(node);
     }
@@ -207,14 +202,12 @@ struct view_node_custom_data_t : public custom_data_t
  * A simple transformer to scale and translate the view in such a way that
  * its displayed wm geometry region is a specified box on the screen
  */
-static const std::string scale_transformer_name =
-    "simple-tile-scale-transformer";
+static const std::string scale_transformer_name = "simple-tile-scale-transformer";
 struct view_node_t::scale_transformer_t : public wf::view_2D
 {
     wf::geometry_t box;
 
-    scale_transformer_t(wayfire_view view, wf::geometry_t box)
-        : wf::view_2D(view)
+    scale_transformer_t(wayfire_view view, wf::geometry_t box) : wf::view_2D(view)
     {
         set_box(box);
     }
@@ -226,8 +219,7 @@ struct view_node_t::scale_transformer_t : public wf::view_2D
         this->view->damage();
 
         auto current = this->view->get_wm_geometry();
-        if (current.width <= 0 || current.height <= 0)
-        {
+        if (current.width <= 0 || current.height <= 0) {
             /* view possibly unmapped?? */
             return;
         }
@@ -249,10 +241,12 @@ struct view_node_t::scale_transformer_t : public wf::view_2D
 view_node_t::view_node_t(wayfire_view view)
 {
     this->view = view;
-    view->store_data(std::make_unique<view_node_custom_data_t> (this));
+    view->store_data(std::make_unique<view_node_custom_data_t>(this));
 
-    this->on_geometry_changed = [=] (wf::signal_data_t*) {update_transformer(); };
-    this->on_decoration_changed = [=] (wf::signal_data_t*) {
+    this->on_geometry_changed = [=](wf::signal_data_t*) {
+        update_transformer();
+    };
+    this->on_decoration_changed = [=](wf::signal_data_t*) {
         set_geometry(geometry);
     };
     view->connect_signal("geometry-changed", &on_geometry_changed);
@@ -272,12 +266,11 @@ wf::geometry_t view_node_t::calculate_target_geometry()
     /* Calculate view geometry in coordinates local to the active workspace,
      * because tree coordinates are kept in workspace-agnostic coordinates. */
     auto output = view->get_output();
-    auto local_geometry = get_output_local_coordinates(
-        view->get_output(), geometry);
+    auto local_geometry =
+        get_output_local_coordinates(view->get_output(), geometry);
 
     /* If view is maximized, we want to use the full available geometry */
-    if (view->fullscreen)
-    {
+    if (view->fullscreen) {
         auto vp = output->workspace->get_current_workspace();
         auto size = output->get_screen_size();
 
@@ -313,23 +306,19 @@ void view_node_t::update_transformer()
         return;
 
     auto wm = view->get_wm_geometry();
-    auto transformer = static_cast<scale_transformer_t*> (
+    auto transformer = static_cast<scale_transformer_t*>(
         view->get_transformer(scale_transformer_name).get());
 
-    if (wm != target_geometry)
-    {
-        if (!transformer)
-        {
-            auto tr = std::make_unique<scale_transformer_t>(view, target_geometry);
+    if (wm != target_geometry) {
+        if (!transformer) {
+            auto tr =
+                std::make_unique<scale_transformer_t>(view, target_geometry);
             transformer = tr.get();
             view->add_transformer(std::move(tr), scale_transformer_name);
-        } else
-        {
+        } else {
             transformer->set_box(target_geometry);
         }
-    }
-    else
-    {
+    } else {
         if (transformer)
             view->pop_transformer(scale_transformer_name);
     }
@@ -351,8 +340,7 @@ void flatten_tree(std::unique_ptr<tree_node_t>& root)
         return;
 
     /* No flattening required on this level */
-    if (root->children.size() >= 2)
-    {
+    if (root->children.size() >= 2) {
         for (auto& child : root->children)
             flatten_tree(child);
 
@@ -368,8 +356,7 @@ void flatten_tree(std::unique_ptr<tree_node_t>& root)
     nonstd::observer_ptr<tree_node_t> child_ptr = {root->children.front()};
 
     /* A single view child => cannot make it root */
-    if (child_ptr->as_view_node())
-    {
+    if (child_ptr->as_view_node()) {
         if (!root->parent)
             return;
     }
@@ -385,10 +372,10 @@ nonstd::observer_ptr<split_node_t> get_root(
     nonstd::observer_ptr<tree_node_t> node)
 {
     if (!node->parent)
-        return {dynamic_cast<split_node_t*> (node.get())};
+        return {dynamic_cast<split_node_t*>(node.get())};
 
     return get_root(node->parent);
 }
 
-}
-}
+} // namespace tile
+} // namespace wf

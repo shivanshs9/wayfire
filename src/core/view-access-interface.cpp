@@ -25,22 +25,17 @@ extern "C"
 namespace wf
 {
 
-view_access_interface_t::view_access_interface_t()
-{
-}
+view_access_interface_t::view_access_interface_t() {}
 
 view_access_interface_t::view_access_interface_t(wayfire_view view) : _view(view)
-{
-}
+{}
 
-view_access_interface_t::~view_access_interface_t()
-{
-}
+view_access_interface_t::~view_access_interface_t() {}
 
-variant_t view_access_interface_t::get(const std::string &identifier, bool &error)
+variant_t view_access_interface_t::get(const std::string& identifier, bool& error)
 {
     variant_t out = std::string(""); // Default to empty string as output.
-    error = false; // Assume things will go well.
+    error = false;                   // Assume things will go well.
 
     // Cannot operate if no view is set.
     if (_view == nullptr) {
@@ -52,27 +47,25 @@ variant_t view_access_interface_t::get(const std::string &identifier, bool &erro
         out = _view->get_app_id();
     } else if (identifier == "title") {
         out = _view->get_title();
-    }
-    else if (identifier == "role")
-    {
-        switch (_view->role)
-        {
-        case VIEW_ROLE_TOPLEVEL:
-            out = std::string("TOPLEVEL");
-            break;
-        case VIEW_ROLE_UNMANAGED:
-            out = std::string("UNMANAGED");
-            break;
-        case VIEW_ROLE_DESKTOP_ENVIRONMENT:
-            out = std::string("DESKTOP_ENVIRONMENT");
-            break;
-        default:
-            std::cerr << "View access interface: View has unsupported value for role: " << static_cast<int>(_view->role) << std::endl;
-            error = true;
-            break;
+    } else if (identifier == "role") {
+        switch (_view->role) {
+            case VIEW_ROLE_TOPLEVEL:
+                out = std::string("TOPLEVEL");
+                break;
+            case VIEW_ROLE_UNMANAGED:
+                out = std::string("UNMANAGED");
+                break;
+            case VIEW_ROLE_DESKTOP_ENVIRONMENT:
+                out = std::string("DESKTOP_ENVIRONMENT");
+                break;
+            default:
+                std::cerr
+                    << "View access interface: View has unsupported value for role: "
+                    << static_cast<int>(_view->role) << std::endl;
+                error = true;
+                break;
         }
-    }
-    else if (identifier == "fullscreen") {
+    } else if (identifier == "fullscreen") {
         out = _view->fullscreen;
     } else if (identifier == "activated") {
         out = _view->activated;
@@ -96,19 +89,14 @@ variant_t view_access_interface_t::get(const std::string &identifier, bool &erro
         out = _view->tiled_edges == TILED_EDGES_ALL;
     } else if (identifier == "floating") {
         out = _view->tiled_edges == 0;
-    }
-    else if (identifier == "type")
-    {
-        do
-        {
-            if (_view->role == VIEW_ROLE_TOPLEVEL)
-            {
+    } else if (identifier == "type") {
+        do {
+            if (_view->role == VIEW_ROLE_TOPLEVEL) {
                 out = std::string("toplevel");
                 break;
             }
 
-            if (_view->role == VIEW_ROLE_UNMANAGED)
-            {
+            if (_view->role == VIEW_ROLE_UNMANAGED) {
                 auto surf = _view->get_wlr_surface();
 #if WLR_HAS_XWAYLAND
                 if (surf && wlr_surface_is_xwayland_surface(surf)) {
@@ -120,13 +108,13 @@ variant_t view_access_interface_t::get(const std::string &identifier, bool &erro
                 break;
             }
 
-            if (!_view->get_output())
-            {
+            if (!_view->get_output()) {
                 out = std::string("unknown");
                 break;
             }
 
-            uint32_t layer = _view->get_output()->workspace->get_view_layer(_view);
+            uint32_t layer =
+                _view->get_output()->workspace->get_view_layer(_view);
             if (layer == LAYER_BACKGROUND || layer == LAYER_BOTTOM) {
                 out = std::string("background");
             } else if (layer == LAYER_TOP) {
@@ -137,11 +125,11 @@ variant_t view_access_interface_t::get(const std::string &identifier, bool &erro
             break;
 
             out = std::string("unknown");
-        }
-        while (false);
-    }
-    else {
-        std::cerr << "View access interface: Get operation triggered to unsupported view property " << identifier << std::endl;
+        } while (false);
+    } else {
+        std::cerr
+            << "View access interface: Get operation triggered to unsupported view property "
+            << identifier << std::endl;
     }
 
     return out;
